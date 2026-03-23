@@ -54,19 +54,17 @@ data products should reflect real EO practice.
 
 Each satellite has an orbit type, sensor, revisit time, and cloud/weather dependency:
 
-| Name         | Orbit   | Sensor                          | Revisit    | Cloud-free? | Best for                                    |
-| ------------ | ------- | ------------------------------- | ---------- | ----------- | ------------------------------------------- |
-| FIRE-WATCH   | LEO/SSO | Thermal IR                      | 12h        | No          | Wildfires, volcanic heat, urban temperature |
-| FLOOD-EYE    | LEO/SSO | SAR                             | 6h         | Yes         | Flooding, subsidence, ship detection        |
-| CARBON-SENSE | LEO/SSO | Hyperspectral sounder           | 16h        | Partial     | GHG plumes, methane, CO2 flux               |
-| URBAN-LENS   | LEO/SSO | Optical multispectral (0.5m)    | 24h        | No          | Deforestation, urban change, crop stress    |
-| COAST-GUARD  | LEO/SSO | Optical multispectral + thermal | 12h        | No          | Ocean colour, coastal change, oil spills    |
-| STORM-EYE    | GEO     | Sounder + optical               | Continuous | Partial     | Tropical storms, weather systems, dust      |
-| TOPO-SCAN    | LEO     | LiDAR                           | 48h        | Yes         | Elevation change, ice, vegetation height    |
-
-Cloud cover should affect optical satellites — if a crisis spawns under a cloud layer,
-FLOOD-EYE (SAR) or FIRE-WATCH (thermal, partial penetration) may be the only options.
-This adds a layer of real operational decision-making.
+| Name         | Orbit             | Sensor                                         | Revisit    | Cloud-free?                      | Best for                                                                                                                                            |
+| ------------ | ----------------- | ---------------------------------------------- | ---------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FIRE-WATCH   | LEO/SSO           | Thermal IR                                     | 12h        | No                               | Wildfires, volcanic heat, urban temperature                                                                                                         |
+| FLOOD-EYE    | LEO/SSO           | SAR                                            | 6h         | Yes                              | Flooding, subsidence, ship detection                                                                                                                |
+| CARBON-SENSE | LEO/SSO           | Hyperspectral sounder                          | 16h        | Partial                          | GHG plumes, methane, CO2 flux                                                                                                                       |
+| URBAN-LENS   | LEO/SSO           | Optical multispectral (0.5m)                   | 24h        | No                               | Deforestation, urban change, crop stress                                                                                                            |
+| COAST-GUARD  | LEO/SSO           | Optical multispectral + thermal                | 12h        | No                               | Ocean colour, coastal change, oil spills                                                                                                            |
+| STORM-EYE    | GEO               | Sounder + optical                              | Continuous | Partial                          | Tropical storms, weather systems, dust                                                                                                              |
+| TOPO-SCAN    | LEO               | LiDAR                                          | 48h        | Yes                              | Elevation change, ice, vegetation height                                                                                                            |
+| FOREST-WATCH | LEO/SSO           | Dual payload — optical + SAR                   | 12h        | Partial                          | Deforestation, illegal logging, fire encroachment, biomass change. Auto-selects best sensor based on cloud cover; player can override to force SAR. |
+| SOL-WATCH    | L1 Lagrange point | Solar wind monitor / magnetometer / EUV imager | Continuous | N/A — observes the Sun not Earth | Solar flares, CME detection, geomagnetic storm warning. Shown as fixed marker sunward, not an orbiting icon.                                        |
 
 ## Event Types
 
@@ -85,7 +83,10 @@ Using the wrong satellite returns degraded or no data. Urgency timers scale by e
 
 ### Crisis Events — Medium Term (days to weeks in-game)
 
-- **Deforestation Event** — URBAN-LENS — change detection / NDVI loss → regulatory enforcement / reforestation order / indigenous land alert
+- **Deforestation Event** — FOREST-WATCH + URBAN-LENS — change detection / NDVI loss → regulatory enforcement / reforestation order / indigenous land alert
+- **Illegal Logging** — FOREST-WATCH — SAR backscatter change + optical canopy loss → law enforcement tasking / logging moratorium / satellite monitoring order
+- **Fire Encroachment** — FOREST-WATCH + FIRE-WATCH — thermal + canopy damage → firebreak establishment / community evacuation / aerial suppression
+- **Biomass Change** — FOREST-WATCH + TOPO-SCAN — canopy height change + biomass index → carbon credit audit / conservation alert / research tasking
 - **Crop Failure** — URBAN-LENS + CARBON-SENSE — vegetation stress index (NDVI anomaly) → food security alert / aid logistics / insurance assessment
 - **Coastal Erosion** — COAST-GUARD + TOPO-SCAN — shoreline change + elevation loss → infrastructure warning / managed retreat / engineering response
 - **Urban Heat Island Escalation** — FIRE-WATCH + URBAN-LENS — land surface temperature anomaly → cooling centre activation / urban greening / building code review
@@ -100,35 +101,32 @@ Using the wrong satellite returns degraded or no data. Urgency timers scale by e
 - **Ice Sheet Mass Loss** — TOPO-SCAN + FLOOD-EYE — elevation change + velocity map → sea level advisory / climate report / international alert
 - **Coral Bleaching** — COAST-GUARD — sea surface temperature + ocean colour → marine park closure / fishing ban / reef restoration
 
+### Space Weather Events (unique category — threat comes from above, not on Earth)
+
+These are the only events where SOL-WATCH is the primary asset. Severe events have
+knock-on effects on the rest of the constellation — a major CME temporarily degrades
+all LEO satellites, forcing the player to rely on GEO and SOL-WATCH assets only.
+
+- **Solar Flare (X-class)** — SOL-WATCH — EUV + X-ray flux map → satellite safe mode command / HF radio blackout warning / astronaut shelter alert
+- **Coronal Mass Ejection (CME)** — SOL-WATCH — solar wind density + velocity plot → power grid pre-emptive load shedding / pipeline current suppression / transformer protection / GPS degradation warning
+- **Geomagnetic Storm** — SOL-WATCH + any LEO satellite (showing sensor noise) — Kp index display → grid operator alert / satellite drag compensation / aurora observation bonus
+- **Satellite Drag Event** — SOL-WATCH — atmospheric density anomaly at LEO altitudes → constellation orbit adjustment. Gameplay consequence: temporarily increases revisit time on all LEO satellites while they recover, degrading overall constellation capacity.
+- **Radio Blackout** — SOL-WATCH — solar proton event → HF communications blackout warning / reroute aviation / emergency services advisory
+
 ### Observation Events — Light Touch (bonus objectives, no penalty for missing)
 
 These spawn occasionally. Tasking earns bonus points. Flavour text should be warm and
 human — a moment of levity in the mission control aesthetic.
 
-- **Music Festival** (Burning Man / Glastonbury / Coachella) — URBAN-LENS — optical image
-  shows temporary city in desert or field of stages. _"Temporary urban footprint detected.
-  Crowd density nominal. Portable sanitation infrastructure visible at 0.5m resolution.
-  No intervention required."_
-- **Whale Migration** — COAST-GUARD — ocean colour + thermal anomaly near coastline.
-  _"Biological hotspot confirmed. Whale aggregation detected. Recommend maritime
-  exclusion zone. Magnificent."_
-- **Aurora Event** — any satellite — sensor noise + atmospheric glow.
-  _"Geomagnetic storm affecting sensor calibration. Kp index elevated.
-  Ground operators are reportedly standing outside looking up. Can confirm: worth it."_
-- **Stadium Event** — URBAN-LENS — thermal + optical signature of packed stadium.
-  _"Large gathering detected. Heat signature consistent with approximately 90,000 humans
-  enjoying themselves. Vendor activity elevated near northern concourse."_
-- **Rocket Launch Plume** — CARBON-SENSE + FIRE-WATCH — thermal + exhaust chemical signature.
-  _"Launch event detected. Propellant plume consistent with hydrocarbon first stage.
-  Ironic that we are using satellites to observe someone launching a satellite."_
-- **Bioluminescent Bay** — COAST-GUARD (night pass) — glowing coastal anomaly.
-  _"Dinoflagellate bloom confirmed. Classification: spectacular. Threat level: zero."_
-- **Desert Blooming Event** — URBAN-LENS — sudden NDVI spike in arid region after rainfall.
-  _"Vegetation anomaly detected. Wildflower superbloom confirmed. Recommend no action
-  except appreciation."_
-- **Antarctic Research Station Resupply** — TOPO-SCAN + URBAN-LENS — vessel + vehicle
-  tracks in snow. _"Resupply operation confirmed. Ice runway in use. Someone down there
-  is about to receive fresh vegetables for the first time in four months."_
+- **Music Festival** (Burning Man / Glastonbury / Coachella) — URBAN-LENS — optical image shows temporary city in desert or field of stages. _"Temporary urban footprint detected. Crowd density nominal. Portable sanitation infrastructure visible at 0.5m resolution. No intervention required."_
+- **Whale Migration** — COAST-GUARD — ocean colour + thermal anomaly near coastline. _"Biological hotspot confirmed. Whale aggregation detected. Recommend maritime exclusion zone. Magnificent."_
+- **Aurora Event** — SOL-WATCH + any LEO satellite — sensor noise + atmospheric glow. _"Geomagnetic storm affecting sensor calibration. Kp index elevated. Ground operators are reportedly standing outside looking up. Can confirm: worth it."_
+- **Stadium Event** — URBAN-LENS — thermal + optical signature of packed stadium. _"Large gathering detected. Heat signature consistent with approximately 90,000 humans enjoying themselves. Vendor activity elevated near northern concourse."_
+- **Rocket Launch Plume** — CARBON-SENSE + FIRE-WATCH — thermal + exhaust chemical signature. _"Launch event detected. Propellant plume consistent with hydrocarbon first stage. Ironic that we are using satellites to observe someone launching a satellite."_
+- **Bioluminescent Bay** — COAST-GUARD (night pass) — glowing coastal anomaly. _"Dinoflagellate bloom confirmed. Classification: spectacular. Threat level: zero."_
+- **Desert Blooming Event** — URBAN-LENS — sudden NDVI spike in arid region after rainfall. _"Vegetation anomaly detected. Wildflower superbloom confirmed. Recommend no action except appreciation."_
+- **Antarctic Research Station Resupply** — TOPO-SCAN + URBAN-LENS — vessel + vehicle tracks in snow. _"Resupply operation confirmed. Ice runway in use. Someone down there is about to receive fresh vegetables for the first time in four months."_
+- **Satellite Launch Observation** — SOL-WATCH + FIRE-WATCH — launch plume + initial orbital insertion. _"New arrival detected entering LEO. Welcome to the neighbourhood."_
 
 ## Game Loop
 

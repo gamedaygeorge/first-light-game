@@ -1,0 +1,2591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FIRST LIGHT — Diamond Sky Mission Control</title>
+<style>
+:root {
+  --bg-primary: #0d1520;
+  --bg-panel: #121e2e;
+  --bg-panel-border: #243650;
+  --color-accent: #00ff88;
+  --color-amber: #ffaa00;
+  --color-alert: #ff3333;
+  --color-info: #00aaff;
+  --color-obs: #00ccbb;
+  --color-coast: #1a6080;
+  --color-land: #1a2a1a;
+  --color-ocean: #070f1a;
+  --font-mono: 'Courier New', Courier, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+  background: var(--bg-primary);
+  color: #d0dce8;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+#hud-bar {
+  width: 100%; height: 36px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--bg-panel-border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+#hud-left { color: var(--color-accent); font-size: 13px; font-weight: bold; letter-spacing: 1px; }
+#hud-center { color: #e0e8f0; font-size: 14px; letter-spacing: 2px; font-weight: bold; }
+#hud-center.warn { color: var(--color-amber); }
+#hud-center.critical { color: var(--color-alert); animation: hudpulse 0.6s step-end infinite; }
+@keyframes hudpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+#hud-right { color: #ccd8e8; font-size: 13px; letter-spacing: 1px; }
+#hud-right span { color: var(--color-accent); }
+#main-area {
+  display: flex; flex-direction: row;
+  width: 100%; height: calc(100vh - 36px);
+  overflow: hidden;
+}
+#satellite-panel {
+  width: 200px; height: 100%;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--bg-panel-border);
+  overflow-y: auto;
+  padding: 8px;
+  flex-shrink: 0;
+}
+#satellite-panel h3 {
+  color: var(--color-accent); font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase; padding: 4px 0 6px 0;
+  border-bottom: 1px solid var(--bg-panel-border); margin-bottom: 6px;
+}
+.sat-card {
+  background: #0d1828;
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 3px;
+  padding: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.15s;
+  overflow: hidden;
+}
+.sat-card:hover { border-color: #2a5060; }
+.sat-card.selected { border-color: var(--color-accent); }
+.sat-card.tasking { border-color: var(--color-amber); }
+.sat-card.cooldown { border-color: #330a0a; cursor: default; }
+.sat-name {
+  color: var(--color-accent); font-weight: bold; font-size: 11px;
+  letter-spacing: 0.5px; margin-bottom: 3px;
+}
+.sat-orbit-badge {
+  display: inline-block; font-size: 9px; padding: 1px 4px;
+  border-radius: 2px; background: #0a2030; color: var(--color-info);
+  border: 1px solid #1a4060; margin-right: 4px;
+}
+.sat-sensor { color: #99bbcc; font-size: 10px; margin: 3px 0; }
+.sat-status { font-size: 10px; margin-top: 4px; }
+.sat-status.nominal { color: var(--color-accent); }
+.sat-status.tasking-st { color: var(--color-amber); }
+.sat-status.cooldown-st { color: var(--color-alert); }
+.sat-card.sol-inactive { opacity: 0.4; }
+.sat-progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 2px;
+  background: var(--color-alert); transition: width 0.1s;
+}
+.sat-progress-bar.filling { background: var(--color-accent); }
+.sat-duty-outer { height: 3px; background: #0a1420; width: 100%; margin-top: 3px; border-radius: 1px; overflow: hidden; }
+.sat-duty-fill  { height: 100%; width: 0%; border-radius: 1px; transition: width 0.4s; background: #2255aa; }
+.sat-duty-fill.warn     { background: #ffaa00; }
+.sat-duty-fill.critical { background: #ff4422; }
+.fw-toggle-row { display:flex; gap:6px; margin:8px 0 4px 0; align-items:center; font-size:10px; color:#aabbcc; }
+.fw-toggle-btn { padding:2px 8px; border-radius:2px; cursor:pointer; font-family:var(--font-mono); background:#0d1828; border:1px solid #243650; color:#aabbcc; font-size:10px; letter-spacing:1px; }
+.fw-toggle-btn.active  { border-color:#44dd88; color:#44dd88; background:#061510; }
+.consequence-warn { font-size:10px; color:#ddaa66; margin-top:6px; padding:5px 7px; border:1px solid #553322; border-radius:2px; background:#1a0d00; line-height:1.5; }
+.mitigation-timeout { color:var(--color-amber); font-size:11px; font-weight:bold; letter-spacing:1px; padding:5px 0 3px 0; border-top:1px solid #1a3040; margin-top:6px; }
+.data-ready-badge { display:inline-block; background:#003322; border:1px solid #44dd88; color:#44dd88; font-size:9px; padding:2px 7px; border-radius:2px; letter-spacing:2px; margin-bottom:8px; }
+#map-container {
+  flex: 1 1 0; min-width: 0; height: 100%;
+  position: relative; overflow: hidden;
+  aspect-ratio: 1120/852;
+  max-height: calc(100vh - 36px);
+}
+#map-canvas, #cloud-canvas, #event-canvas {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+#map-canvas { z-index: 1; }
+#cloud-canvas { z-index: 2; pointer-events: none; }
+#event-canvas { z-index: 3; cursor: crosshair; }
+#data-panel {
+  width: 340px; height: 100%;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--bg-panel-border);
+  display: flex; flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+#event-info {
+  flex: 1; overflow-y: auto;
+  padding: 12px;
+  border-bottom: 1px solid var(--bg-panel-border);
+  min-height: 0;
+}
+#event-info-placeholder {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; color: #aabbcc;
+  text-align: center; padding: 20px;
+}
+#event-info-placeholder .awaiting {
+  color: var(--color-accent); font-size: 14px; letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+#event-info-placeholder .briefing {
+  color: #aabbcc; font-size: 11px; line-height: 1.6;
+}
+.event-title { color: #fff; font-size: 14px; font-weight: bold; margin-bottom: 6px; }
+.event-region { color: #aabbcc; font-size: 11px; margin-bottom: 8px; }
+.cat-badge {
+  display: inline-block; font-size: 9px; padding: 2px 6px;
+  border-radius: 2px; margin-bottom: 8px; font-weight: bold; letter-spacing: 1px;
+}
+.cat-badge.short { background: #330a0a; color: var(--color-alert); border: 1px solid #660a0a; }
+.cat-badge.medium { background: #2a1a00; color: var(--color-amber); border: 1px solid #553300; }
+.cat-badge.long { background: #0a1a30; color: var(--color-info); border: 1px solid #1a4060; }
+.cat-badge.observation { background: #0a1a18; color: var(--color-obs); border: 1px solid #1a4040; }
+.cat-badge.space_weather { background: #1a1500; color: #ffee44; border: 1px solid #554400; }
+.sat-rec-label { color: #aabbcc; font-size: 10px; letter-spacing: 1px; margin-bottom: 6px; }
+.sat-rec-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 11px; }
+.sat-rec-item .match-icon { font-size: 12px; width: 14px; }
+.sat-rec-item .match-icon.primary { color: var(--color-accent); }
+.sat-rec-item .match-icon.acceptable { color: var(--color-amber); }
+.sat-rec-item .match-icon.wrong { color: #99aabb; }
+.cloud-warning {
+  margin-top: 8px; padding: 6px 8px; border-radius: 3px;
+  font-size: 11px; line-height: 1.5;
+}
+.cloud-warning.warn { background: #2a1a00; color: var(--color-amber); border: 1px solid #553300; }
+.cloud-warning.ok { background: #0a1a10; color: var(--color-accent); border: 1px solid #1a4030; }
+.task-instruction { color: #aabbcc; font-size: 11px; margin-top: 10px; line-height: 1.5; }
+.task-instruction span { color: var(--color-info); }
+#product-canvas { display: block; width: 100%; height: 240px; margin: 8px 0; border: 1px solid var(--bg-panel-border); border-radius: 2px; }
+.metric-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; border-bottom: 1px solid #152535; font-size: 11px; }
+.metric-label { color: #aabbcc; letter-spacing: 1px; }
+.metric-value { color: #e0e8f0; }
+.confidence-bar-wrap { margin: 8px 0; }
+.confidence-bar-label { color: #aabbcc; font-size: 10px; margin-bottom: 3px; letter-spacing: 1px; }
+.confidence-bar { height: 6px; background: #0c1525; border-radius: 3px; overflow: hidden; }
+.confidence-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.match-result { font-size: 12px; font-weight: bold; margin-top: 8px; letter-spacing: 1px; }
+.match-result.optimal { color: var(--color-accent); }
+.match-result.degraded { color: var(--color-amber); }
+.match-result.blocked { color: var(--color-alert); }
+.flavour-text { color: #99bbdd; font-size: 10px; line-height: 1.6; margin-top: 8px; font-style: italic; padding: 6px; border: 1px solid #1a3040; border-radius: 2px; }
+#action-section {
+  height: 200px; padding: 10px 12px;
+  border-bottom: 1px solid var(--bg-panel-border);
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+#action-section h4 { color: #aabbcc; font-size: 10px; letter-spacing: 2px; margin-bottom: 8px; }
+.action-btn {
+  display: block; width: 100%; padding: 8px 10px;
+  background: #0d1828; border: 1px solid #243650;
+  color: var(--color-accent); font-family: var(--font-mono); cursor: pointer;
+  margin-bottom: 5px; text-align: left; font-size: 11px;
+  border-radius: 2px; transition: border-color 0.15s, background 0.15s;
+}
+.action-btn:hover { border-color: var(--color-accent); background: #0a2030; }
+.action-btn .risk-badge {
+  float: right; font-size: 9px; padding: 1px 4px; border-radius: 2px;
+}
+.risk-badge.LOW { background: #0a2010; color: #44aa66; border: 1px solid #1a4020; }
+.risk-badge.MEDIUM { background: #2a1a00; color: var(--color-amber); border: 1px solid #553300; }
+.risk-badge.HIGH { background: #330a0a; color: var(--color-alert); border: 1px solid #660a0a; }
+.cost-indicator { display: block; font-size: 9px; margin-top: 3px; letter-spacing: 0.5px; }
+.cost-indicator.high { color: #ff6644; }
+.cost-indicator.medium { color: #ffcc00; }
+.cost-indicator.low { color: #44cc88; }
+#event-log-section {
+  height: 180px; padding: 8px 12px;
+  flex-shrink: 0; overflow: hidden;
+}
+#event-log-section h4 { color: #aabbcc; font-size: 10px; letter-spacing: 2px; margin-bottom: 6px; }
+#event-log { overflow-y: auto; height: 145px; }
+.log-entry { font-size: 10px; padding: 2px 0; border-bottom: 1px solid #0a1420; display: flex; justify-content: space-between; }
+.log-entry .log-time { color: #8899cc; }
+.log-entry .log-type { color: #aabbcc; flex: 1; padding: 0 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.log-entry .log-score.positive { color: var(--color-accent); }
+.log-entry .log-score.negative { color: var(--color-alert); }
+#modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(5,10,15,0.92); z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+}
+#modal-overlay.hidden { display: none; }
+.modal-box {
+  background: #0a1420; border: 1px solid var(--bg-panel-border);
+  padding: 48px 64px; text-align: center; max-width: 600px;
+  box-shadow: 0 0 60px rgba(0,255,136,0.05);
+}
+.modal-title {
+  font-size: 48px; color: var(--color-accent); letter-spacing: 4px;
+  font-weight: bold; margin-bottom: 8px;
+}
+.modal-subtitle { color: #aabbdd; font-size: 16px; letter-spacing: 2px; margin-bottom: 24px; }
+.modal-brief { color: #bbccdd; font-size: 13px; line-height: 2; margin-bottom: 24px; }
+.modal-attr { color: #99aabb; font-size: 11px; margin-bottom: 32px; letter-spacing: 1px; }
+.modal-attr a { color: #aabbdd; text-decoration: none; }
+.modal-btn {
+  display: inline-block; padding: 14px 48px;
+  background: transparent; border: 1px solid var(--color-accent);
+  color: var(--color-accent); font-family: var(--font-mono);
+  font-size: 14px; letter-spacing: 3px; cursor: pointer;
+  transition: background 0.2s; text-transform: uppercase;
+}
+.modal-btn:hover { background: rgba(0,255,136,0.08); }
+.duration-btn {
+  flex: 1; padding: 10px 8px; background: transparent;
+  border: 1px solid #1a3040; color: #7799bb;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 1px;
+  cursor: pointer; text-align: center; line-height: 1.6;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.duration-btn span { font-size: 14px; color: #aabbcc; font-weight: bold; }
+.duration-btn:hover { border-color: var(--color-accent); color: #aabbcc; }
+.duration-btn.selected { border-color: var(--color-accent); background: rgba(0,255,136,0.07); color: var(--color-accent); }
+.duration-btn.selected span { color: var(--color-accent); }
+.gameover-stats { margin: 20px 0 28px 0; }
+.go-stat { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #0d1828; font-size: 13px; }
+.go-stat-label { color: #aabbcc; }
+.go-stat-value { color: #e0e8f0; }
+.go-stat-value.highlight { color: var(--color-accent); font-size: 16px; }
+#tasking-overlay {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: rgba(8,15,24,0.96); border: 1px solid var(--color-amber);
+  padding: 20px 32px; text-align: center; z-index: 10; pointer-events: none;
+  display: none; min-width: 280px;
+  box-shadow: 0 0 40px rgba(255,170,0,0.12);
+}
+#tasking-overlay.visible { display: block; }
+#pause-overlay {
+  display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(5,10,20,0.85); z-index: 50;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px;
+}
+#pause-overlay.visible { display: flex; }
+#pause-overlay:not(.visible) { display: none; }
+#pause-overlay .pause-title { color: var(--color-accent); font-size: 20px; letter-spacing: 4px; font-weight: bold; margin-bottom: 8px; }
+.pause-btn {
+  display: inline-block; padding: 12px 36px;
+  background: transparent; border: 1px solid var(--color-accent);
+  color: var(--color-accent); font-family: var(--font-mono);
+  font-size: 13px; letter-spacing: 2px; cursor: pointer;
+  transition: background 0.2s; min-width: 220px; text-align: center;
+}
+.pause-btn:hover { background: rgba(0,255,136,0.08); }
+.pause-btn.end { border-color: var(--color-alert); color: var(--color-alert); }
+.pause-btn.end:hover { background: rgba(255,51,51,0.08); }
+#tasking-overlay .task-header { color: #99aabb; font-size: 9px; letter-spacing: 3px; margin-bottom: 10px; }
+#tasking-overlay .task-sat-name { color: var(--color-amber); font-size: 16px; letter-spacing: 2px; font-weight: bold; margin-bottom: 4px; }
+#tasking-overlay .task-mission-type { color: #e0e8f0; font-size: 11px; margin-bottom: 2px; }
+#tasking-overlay .task-region { color: #aabbcc; font-size: 10px; margin-bottom: 12px; }
+#tasking-overlay .task-progress { color: #ccddee; font-size: 11px; margin-bottom: 8px; }
+#tasking-bar-outer { width: 240px; height: 4px; background: #0d1828; border-radius: 2px; overflow: hidden; margin: 0 auto; }
+#tasking-bar-fill { height: 100%; background: var(--color-amber); width: 0%; transition: width 0.1s; }
+#space-weather-bar { position: fixed; top: 36px; left: 0; right: 0; z-index: 200; background: rgba(30,20,0,0.92); border-bottom: 1px solid #ffcc22; color: #ffee44; font-family: monospace; font-size: 11px; font-weight: bold; text-align: center; padding: 2px 0; letter-spacing: 0.1em; animation: swblink 1s step-end infinite; }
+@keyframes swblink { 0%,100%{opacity:1} 50%{opacity:0.6} }
+#upgrades-section { border-top: 1px solid var(--bg-panel-border); flex-shrink: 0; }
+#upgrades-header { padding: 8px 12px; cursor: pointer; font-size: 10px; letter-spacing: 2px; color: #aabbcc; background: var(--bg-panel); user-select: none; }
+#upgrades-header:hover { background: #14202e; }
+#upgrades-body { padding: 8px 12px; background: var(--bg-panel); overflow-y: auto; max-height: 200px; }
+.upgrade-card { margin-bottom: 8px; padding: 8px; border: 1px solid #243650; border-radius: 2px; }
+.upgrade-card.maxed { border-color: var(--color-accent); opacity: 0.7; }
+.upgrade-name { color: #e0e8f0; font-size: 11px; margin-bottom: 3px; }
+.upgrade-desc { color: #8899bb; font-size: 9px; margin-bottom: 6px; line-height: 1.5; }
+.upgrade-btn { padding: 4px 10px; font-size: 10px; font-family: var(--font-mono); cursor: pointer; border: 1px solid #ffcc44; background: transparent; color: #ffcc44; letter-spacing: 1px; }
+.upgrade-btn:hover { background: rgba(255,204,68,0.1); }
+.upgrade-btn:disabled { opacity: 0.4; cursor: not-allowed; border-color: #445; color: #445; }
+</style>
+</head>
+<body>
+
+<div id="hud-bar">
+  <div id="hud-left">FIRST LIGHT &nbsp;|&nbsp; DIAMOND SKY MISSION CONTROL</div>
+  <div id="hud-center">T+00:00</div>
+  <div id="hud-right">SCORE: <span id="hud-score">00000</span> &nbsp; STREAK: <span id="hud-streak">×1</span> &nbsp; RESOLVED: <span id="hud-events">0</span> &nbsp; CR: <span id="hud-credits" style="color:#ffcc44">0</span> &nbsp;<span id="hud-active-warn" style="display:none;color:#ff6644">⚠ <span id="hud-active-count">0</span> ACTIVE</span>&nbsp;<span style="color:#334455;font-size:10px">ESC=PAUSE</span><span id="hud-phase" style="margin-left:8px"></span></div>
+</div>
+<div id="space-weather-bar" style="display:none;"></div>
+
+<div id="main-area">
+  <div id="satellite-panel">
+    <h3>CONSTELLATION</h3>
+    <div id="sat-cards"></div>
+  </div>
+
+  <div id="map-container">
+    <canvas id="map-canvas" width="1120" height="852"></canvas>
+    <canvas id="cloud-canvas" width="1120" height="852"></canvas>
+    <canvas id="event-canvas" width="1120" height="852"></canvas>
+    <div id="tasking-overlay">
+      <div class="task-header">SATELLITE TASKING IN PROGRESS</div>
+      <div class="task-sat-name" id="tasking-sat-name">FLOOD-EYE</div>
+      <div class="task-mission-type" id="tasking-mission-type">Flooding Detected</div>
+      <div class="task-region" id="tasking-region">Louisiana, USA</div>
+      <div class="task-progress" id="tasking-progress">ACQUIRING TARGET...</div>
+      <div id="tasking-bar-outer"><div id="tasking-bar-fill"></div></div>
+    </div>
+    <div id="pause-overlay">
+      <div class="pause-title">&#9724; MISSION PAUSED</div>
+      <button class="pause-btn" id="pause-resume-btn">RESUME MISSION</button>
+      <button class="pause-btn end" id="pause-end-btn">END MISSION</button>
+    </div>
+  </div>
+
+  <div id="data-panel">
+    <div id="event-info">
+      <div id="event-info-placeholder">
+        <div class="awaiting">AWAITING TASKING</div>
+        <div class="briefing">
+          FIRST LIGHT MISSION CONTROL<br><br>
+          Monitor your satellite constellation.<br>
+          Task the right sensor for each crisis.<br>
+          Resolve events before they escalate.<br><br>
+          Click an event marker on the map,<br>
+          then select a satellite to task.<br><br>
+          SAR penetrates cloud. Optical &amp; LiDAR cannot.<br>
+          Choose sensors carefully.
+        </div>
+      </div>
+      <div id="event-info-content" style="display:none">
+        <div class="event-title" id="ei-title"></div>
+        <div class="event-region" id="ei-region"></div>
+        <div id="ei-cat-badge" class="cat-badge"></div>
+        <div style="margin-top:10px">
+          <div class="sat-rec-label">RECOMMENDED SENSORS</div>
+          <div id="ei-sat-recs"></div>
+        </div>
+        <div id="ei-cloud-warn"></div>
+        <div id="fw-mode-toggle" style="display:none"></div>
+        <div class="task-instruction" id="ei-instruction">
+          Select a satellite from the left panel to task.<br>
+          <span>OPTIMAL:</span> primary sensor &nbsp; <span>DEGRADED:</span> acceptable sensor
+        </div>
+        <canvas id="product-canvas" width="320" height="240" style="display:none"></canvas>
+        <div id="ei-metrics" style="display:none">
+          <div id="fw-active-mode" style="display:none;font-size:10px;color:#44dd88;padding:3px 0;letter-spacing:1px;"></div>
+          <div class="metric-row"><span class="metric-label">EXTENT</span><span class="metric-value" id="m-extent">—</span></div>
+          <div class="metric-row"><span class="metric-label">INTENSITY</span><span class="metric-value" id="m-intensity">—</span></div>
+          <div class="metric-row"><span class="metric-label">CONFIDENCE</span><span class="metric-value" id="m-confidence">—</span></div>
+          <div class="confidence-bar-wrap">
+            <div class="confidence-bar-label">CONFIDENCE LEVEL</div>
+            <div class="confidence-bar"><div class="confidence-bar-fill" id="conf-fill" style="width:0%"></div></div>
+          </div>
+          <div class="match-result" id="match-result"></div>
+          <div class="flavour-text" id="flavour-text" style="display:none"></div>
+          <div id="ei-mitigation-timeout" class="mitigation-timeout" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="action-section">
+      <h4>MITIGATION ACTIONS</h4>
+      <div id="action-buttons"></div>
+    </div>
+
+    <div id="event-log-section">
+      <h4>EVENT LOG</h4>
+      <div id="event-log"></div>
+    </div>
+
+    <div id="upgrades-section">
+      <div id="upgrades-header" onclick="toggleUpgrades()">
+        UPGRADES &nbsp;<span id="credits-display" style="color:#ffcc44">0 CR</span>
+        <span style="float:right;color:#7799bb" id="upgrades-toggle-icon">&#9660;</span>
+      </div>
+      <div id="upgrades-body" style="display:none">
+        <!-- upgrade cards rendered by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-overlay">
+  <div class="modal-box" id="intro-box">
+    <div style="color:#7799bb;font-size:10px;letter-spacing:3px;margin-bottom:12px">DIAMOND SKY MISSION CONTROL</div>
+    <div class="modal-title">FIRST LIGHT</div>
+    <div class="modal-subtitle">Earth Observation Crisis Management</div>
+    <div class="modal-brief">
+      Nine satellites. One planet. No time to waste.<br><br>
+      Click an event marker → task the right satellite → act on the data.<br>
+      Wrong sensor or slow response? The crisis escalates.<br><br>
+      <span style="color:#aabbcc;font-size:11px">SAR penetrates cloud. Optical &amp; LiDAR cannot.<br>
+      GEO responds instantly. LEO waits for the next overpass.<br>
+      SOL-WATCH at L1 is your space weather early-warning system.</span>
+    </div>
+    <div style="margin:16px 0 8px;color:#aabbcc;font-size:10px;letter-spacing:2px">SELECT MISSION DURATION</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px">
+      <button class="duration-btn" data-dur="300">SPRINT<br><span>5 MIN</span></button>
+      <button class="duration-btn selected" data-dur="600">STANDARD<br><span>10 MIN</span></button>
+      <button class="duration-btn" data-dur="900">MARATHON<br><span>15 MIN</span></button>
+    </div>
+    <div class="modal-attr">A <a href="https://diamondsky.au" target="_blank" style="color:#aabbdd;text-decoration:underline">Diamond Sky</a> portfolio piece — diamondsky.au</div>
+    <button class="modal-btn" id="start-btn">INITIATE MISSION</button>
+  </div>
+  <div class="modal-box" id="gameover-box" style="display:none">
+    <div class="modal-title" style="font-size:32px;margin-bottom:4px">MISSION CONCLUDED</div>
+    <div class="modal-subtitle" style="margin-bottom:16px">END OF MISSION REPORT</div>
+    <div class="gameover-stats" id="go-stats"></div>
+    <button class="modal-btn" id="restart-btn">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+(function() {
+'use strict';
+
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const MAP_W = 1120, MAP_H = 852;
+
+function lonToX(lon) { return (lon + 180) / 360 * MAP_W; }
+function latToY(lat) { return (80 - lat) / 160 * MAP_H; }
+
+const SATELLITES = [
+  { id: 'FIRE-WATCH',   orbit: 'LEO', sensor: 'Thermal IR',           revisit: 12, cloudFree: false,      nightFree: true,      color: '#ff6600', satIndex: 0, cooldownMax: 45  },
+  { id: 'FLOOD-EYE',    orbit: 'LEO', sensor: 'SAR',                   revisit: 6,  cloudFree: true,       nightFree: true,      color: '#4488ff', satIndex: 1, cooldownMax: 25  },
+  { id: 'CARBON-SENSE', orbit: 'LEO', sensor: 'Hyperspectral',         revisit: 16, cloudFree: 'partial',  nightFree: false,     color: '#aa44ff', satIndex: 2, cooldownMax: 60  },
+  { id: 'URBAN-LENS',   orbit: 'LEO', sensor: 'Optical 0.5m',          revisit: 24, cloudFree: false,      nightFree: false,     color: '#44ff44', satIndex: 3, cooldownMax: 80  },
+  { id: 'COAST-GUARD',  orbit: 'LEO', sensor: 'Optical+Thermal',       revisit: 12, cloudFree: false,      nightFree: 'partial', color: '#00ffcc', satIndex: 4, cooldownMax: 45  },
+  { id: 'STORM-EYE',    orbit: 'GEO', sensor: 'Sounder+Optical',       revisit: 0,  cloudFree: 'partial',  nightFree: 'partial', color: '#ffcc00', satIndex: -1, cooldownMax: 5  },
+  { id: 'TOPO-SCAN',    orbit: 'LEO', sensor: 'LiDAR',                 revisit: 48, cloudFree: false,      nightFree: true,      color: '#ffffff', satIndex: 5, cooldownMax: 120 },
+  { id: 'FOREST-WATCH', orbit: 'LEO', sensor: 'Optical+SAR (Dual)',   revisit: 12, cloudFree: 'partial',  nightFree: 'partial', color: '#44dd88', satIndex: 6, cooldownMax: 35  },
+  { id: 'SOL-WATCH',   orbit: 'L1',  sensor: 'Solar Wind/EUV',       revisit: 0,  cloudFree: true,       nightFree: true,      color: '#ffee44', satIndex: -2, cooldownMax: 2  },
+];
+
+const EVENT_TYPES = {
+  WILDFIRE:        { title:'Wildfire Detected',        category:'short',       urgency:[60,120],   primary:['FIRE-WATCH'],                  acceptable:['FIRE-WATCH'],                    dataProduct:'thermal',      locations:[[-120,38,'California'],[-5,38,'Portugal'],[145,-33,'NSW'],[25,38,'Greece']], mitigations:[{id:'suppress',label:'Aerial Suppression',risk:'MEDIUM',cost:'MEDIUM',points:150},{id:'evacuate',label:'Order Evacuation',risk:'LOW',cost:'LOW',points:120},{id:'burn',label:'Controlled Burn',risk:'HIGH',cost:'HIGH',points:180}] },
+  FLOODING:        { title:'Flooding Detected',         category:'short',       urgency:[60,120],   primary:['FLOOD-EYE'],                   acceptable:['FLOOD-EYE'],                     dataProduct:'sar_flood',    locations:[[-91,30,'Louisiana'],[90,24,'Bangladesh'],[15,51,'Germany']], mitigations:[{id:'services',label:'Emergency Services',risk:'LOW',cost:'LOW',points:140},{id:'barriers',label:'Deploy Barriers',risk:'MEDIUM',cost:'MEDIUM',points:160},{id:'warning',label:'Population Warning',risk:'LOW',cost:'LOW',points:100}] },
+  TROPICAL_STORM:  { title:'Tropical Storm Forming',   category:'short',       urgency:[90,150],   primary:['STORM-EYE','FLOOD-EYE'],       acceptable:['STORM-EYE'],                     dataProduct:'thermal',      locations:[[130,15,'Philippines Sea'],[-75,20,'Caribbean'],[85,15,'Bay of Bengal']], mitigations:[{id:'evacuate',label:'Coastal Evacuation',risk:'LOW',cost:'LOW',points:160},{id:'shelter',label:'Shelter-in-Place',risk:'MEDIUM',cost:'MEDIUM',points:130},{id:'maritime',label:'Maritime Warning',risk:'LOW',cost:'LOW',points:110}] },
+  VOLCANIC:        { title:'Volcanic Eruption',         category:'short',       urgency:[75,130],   primary:['FIRE-WATCH','CARBON-SENSE'],   acceptable:['FIRE-WATCH'],                    dataProduct:'thermal',      locations:[[-155,20,'Hawaii'],[121,15,'Philippines'],[-78,-1,'Ecuador']], mitigations:[{id:'noflyzone',label:'No-Fly Zone',risk:'LOW',cost:'LOW',points:120},{id:'evacuate',label:'Evacuate Radius',risk:'LOW',cost:'LOW',points:150},{id:'aviation',label:'Aviation Alert',risk:'LOW',cost:'LOW',points:130}] },
+  OIL_SPILL:       { title:'Oil Spill Detected',        category:'short',       urgency:[80,140],   primary:['COAST-GUARD'],                 acceptable:['COAST-GUARD'],                   dataProduct:'ocean_colour', locations:[[-90,28,'Gulf of Mexico'],[50,25,'Persian Gulf'],[5,60,'North Sea']], mitigations:[{id:'contain',label:'Maritime Containment',risk:'HIGH',cost:'HIGH',points:160},{id:'wildlife',label:'Wildlife Response',risk:'MEDIUM',cost:'MEDIUM',points:130},{id:'regulatory',label:'Regulatory Alert',risk:'LOW',cost:'LOW',points:90}] },
+  ALGAL_BLOOM:     { title:'Algal Bloom Event',         category:'short',       urgency:[90,150],   primary:['COAST-GUARD'],                 acceptable:['COAST-GUARD'],                   dataProduct:'ocean_colour', locations:[[130,35,'Yellow Sea'],[-5,50,'Irish Sea'],[-120,37,'California Coast']], mitigations:[{id:'water',label:'Water Supply Warning',risk:'LOW',cost:'LOW',points:120},{id:'fisheries',label:'Fisheries Closure',risk:'LOW',cost:'LOW',points:140},{id:'aeration',label:'Deploy Aeration',risk:'HIGH',cost:'HIGH',points:170}] },
+  WATER_QUALITY:   { title:'Water Quality Event',       category:'short',       urgency:[70,120],   primary:['COAST-GUARD','FLOOD-EYE'],    acceptable:['COAST-GUARD'],                   dataProduct:'ocean_colour', locations:[[120,30,'Yangtze Delta'],[-80,30,'Florida Coast'],[15,42,'Adriatic']], mitigations:[{id:'fisheries',label:'Fisheries Closure',risk:'LOW',cost:'LOW',points:130},{id:'downstream',label:'Downstream Warning',risk:'LOW',cost:'LOW',points:140},{id:'remediation',label:'Remediation Ops',risk:'HIGH',cost:'HIGH',points:170}] },
+  DEFORESTATION:   { title:'Deforestation Event',       category:'medium',      urgency:[180,300],  primary:['FOREST-WATCH','URBAN-LENS'],   acceptable:['URBAN-LENS'],                    dataProduct:'ndvi',         locations:[[-60,-5,'Amazon'],[115,0,'Borneo'],[25,1,'Congo Basin']], mitigations:[{id:'regulatory',label:'Regulatory Enforcement',risk:'MEDIUM',cost:'MEDIUM',points:200},{id:'reforest',label:'Reforestation Order',risk:'HIGH',cost:'HIGH',points:220},{id:'indigenous',label:'Indigenous Land Alert',risk:'LOW',cost:'LOW',points:180}] },
+  CROP_FAILURE:    { title:'Crop Failure Signal',        category:'medium',      urgency:[200,320],  primary:['URBAN-LENS','CARBON-SENSE'],  acceptable:['URBAN-LENS'],                    dataProduct:'ndvi',         locations:[[75,25,'India'],[-95,42,'Midwest USA'],[30,35,'Ukraine']], mitigations:[{id:'food',label:'Food Security Alert',risk:'LOW',cost:'LOW',points:160},{id:'aid',label:'Aid Logistics',risk:'MEDIUM',cost:'MEDIUM',points:180},{id:'insurance',label:'Insurance Assessment',risk:'LOW',cost:'LOW',points:140}] },
+  COASTAL_EROSION: { title:'Coastal Erosion Alert',     category:'medium',      urgency:[240,360],  primary:['COAST-GUARD','TOPO-SCAN'],    acceptable:['COAST-GUARD'],                   dataProduct:'lidar',        locations:[[-75,35,'Outer Banks'],[-1,51,'Thames Estuary'],[85,12,'Bay of Bengal']], mitigations:[{id:'infra',label:'Infrastructure Warning',risk:'LOW',cost:'LOW',points:160},{id:'retreat',label:'Managed Retreat',risk:'MEDIUM',cost:'MEDIUM',points:200},{id:'engineering',label:'Engineering Response',risk:'HIGH',cost:'HIGH',points:240}] },
+  URBAN_HEAT:      { title:'Urban Heat Island',          category:'medium',      urgency:[180,280],  primary:['FIRE-WATCH','URBAN-LENS'],    acceptable:['FIRE-WATCH'],                    dataProduct:'thermal',      locations:[[116,40,'Beijing'],[72,19,'Mumbai'],[-87,42,'Chicago'],[55,25,'Dubai']], mitigations:[{id:'cooling',label:'Cooling Centre Activation',risk:'LOW',cost:'LOW',points:150},{id:'greening',label:'Urban Greening',risk:'MEDIUM',cost:'MEDIUM',points:200},{id:'codes',label:'Building Code Review',risk:'MEDIUM',cost:'MEDIUM',points:170}] },
+  DUST_STORM:      { title:'Dust Storm Detected',        category:'medium',      urgency:[200,300],  primary:['STORM-EYE','CARBON-SENSE'],  acceptable:['STORM-EYE'],                     dataProduct:'thermal',      locations:[[25,22,'Sahara'],[60,25,'Arabian Peninsula'],[80,40,'Central Asia']], mitigations:[{id:'aviation',label:'Aviation Warning',risk:'LOW',cost:'LOW',points:140},{id:'health',label:'Health Alert',risk:'LOW',cost:'LOW',points:150},{id:'agri',label:'Agricultural Advisory',risk:'LOW',cost:'LOW',points:160}] },
+  OCEAN_CARBON:    { title:'Ocean Carbon Anomaly',       category:'long',        urgency:[300,600],  primary:['CARBON-SENSE'],                acceptable:['CARBON-SENSE'],                  dataProduct:'methane',      locations:[[168,5,'Pacific ITCZ'],[-30,45,'North Atlantic'],[-150,-45,'Southern Ocean']], mitigations:[{id:'research',label:'Research Flag',risk:'LOW',cost:'LOW',points:120},{id:'emissions',label:'Emissions Trading Alert',risk:'MEDIUM',cost:'MEDIUM',points:160},{id:'report',label:'International Report',risk:'LOW',cost:'LOW',points:150}] },
+  METHANE_PLUME:   { title:'Methane Plume Detected',    category:'long',        urgency:[300,500],  primary:['CARBON-SENSE'],                acceptable:['CARBON-SENSE'],                  dataProduct:'methane',      locations:[[60,58,'West Siberia'],[-102,32,'Permian Basin'],[52,38,'Turkmenistan']], mitigations:[{id:'regulator',label:'Regulator Alert',risk:'LOW',cost:'LOW',points:170},{id:'shutdown',label:'Shutdown Order',risk:'HIGH',cost:'HIGH',points:220},{id:'media',label:'Media Disclosure',risk:'LOW',cost:'LOW',points:150}] },
+  PERMAFROST:      { title:'Permafrost Thaw Signal',     category:'long',        urgency:[350,600],  primary:['CARBON-SENSE','FLOOD-EYE'],  acceptable:['CARBON-SENSE'],                  dataProduct:'methane',      locations:[[100,62,'Siberia'],[-130,62,'Alaska'],[20,65,'Scandinavia']], mitigations:[{id:'infra',label:'Infrastructure Warning',risk:'LOW',cost:'LOW',points:160},{id:'climate',label:'Climate Report',risk:'LOW',cost:'LOW',points:170},{id:'research',label:'Research Tasking',risk:'LOW',cost:'LOW',points:180}] },
+  GROUNDWATER:     { title:'Groundwater Depletion',      category:'long',        urgency:[300,500],  primary:['FLOOD-EYE'],                   acceptable:['FLOOD-EYE'],                     dataProduct:'sar_flood',    locations:[[72,28,'Rajasthan'],[35,33,'Fertile Crescent'],[-100,36,'Ogallala Aquifer']], mitigations:[{id:'irrigation',label:'Irrigation Restriction',risk:'LOW',cost:'LOW',points:170},{id:'aquifer',label:'Aquifer Recharge',risk:'HIGH',cost:'HIGH',points:210},{id:'agri',label:'Agricultural Alert',risk:'LOW',cost:'LOW',points:150}] },
+  ICE_LOSS:        { title:'Ice Sheet Mass Loss',         category:'long',        urgency:[400,700],  primary:['TOPO-SCAN','FLOOD-EYE'],     acceptable:['TOPO-SCAN'],                     dataProduct:'lidar',        locations:[[-42,68,'Greenland'],[0,-62,'Antarctica'],[80,70,'Arctic']], mitigations:[{id:'sealevel',label:'Sea Level Advisory',risk:'LOW',cost:'LOW',points:160},{id:'climate',label:'Climate Report',risk:'LOW',cost:'LOW',points:180},{id:'intl',label:'International Alert',risk:'LOW',cost:'LOW',points:170}] },
+  CORAL_BLEACHING: { title:'Coral Bleaching Alert',      category:'long',        urgency:[350,600],  primary:['COAST-GUARD'],                 acceptable:['COAST-GUARD'],                   dataProduct:'ocean_colour', locations:[[145,-18,'Great Barrier Reef'],[53,23,'Red Sea'],[175,-18,'Pacific Atolls']], mitigations:[{id:'closure',label:'Marine Park Closure',risk:'LOW',cost:'LOW',points:170},{id:'fishing',label:'Fishing Ban',risk:'LOW',cost:'LOW',points:160},{id:'restore',label:'Reef Restoration',risk:'HIGH',cost:'HIGH',points:230}] },
+  ILLEGAL_LOGGING:   { title:'Illegal Logging Detected',   category:'medium', urgency:[150,270], primary:['FOREST-WATCH'],                  acceptable:['URBAN-LENS'],                     dataProduct:'ndvi',    locations:[[-62,-4,'Amazon Basin'],  [116,1,'Kalimantan'],[24,0,'Congo Basin'],[105,15,'Mekong Region']], mitigations:[{id:'enforcement',label:'Law Enforcement Op',risk:'MEDIUM',cost:'MEDIUM',points:210},{id:'monitor',label:'Continuous Monitoring',risk:'LOW',cost:'LOW',points:140},{id:'indigenous',label:'Indigenous Land Alert',risk:'LOW',cost:'LOW',points:180}] },
+  FIRE_ENCROACHMENT: { title:'Fire Encroachment Alert',    category:'short',  urgency:[70,120],  primary:['FOREST-WATCH','FIRE-WATCH'],     acceptable:['URBAN-LENS'],                     dataProduct:'thermal', locations:[[-62,-8,'Amazon Frontier'],  [115,-2,'Borneo Peatlands'],[125,-8,'Papua']],                          mitigations:[{id:'suppress',label:'Aerial Suppression',risk:'MEDIUM',cost:'MEDIUM',points:170},{id:'firebreak',label:'Emergency Firebreak',risk:'HIGH',cost:'HIGH',points:200},{id:'evacuate',label:'Evacuate Villages',risk:'LOW',cost:'LOW',points:140}] },
+  BIOMASS_CHANGE:    { title:'Biomass Change Signal',      category:'medium', urgency:[200,340], primary:['FOREST-WATCH','TOPO-SCAN'],       acceptable:['CARBON-SENSE','URBAN-LENS','TOPO-SCAN'], dataProduct:'ndvi',    locations:[[-55,-10,'Cerrado Brazil'],  [113,3,'Sabah Malaysia'],[12,3,'Gabon']],                               mitigations:[{id:'carbon_report',label:'Carbon Stock Report',risk:'LOW',cost:'LOW',points:150},{id:'protect',label:'Protected Area Declaration',risk:'MEDIUM',cost:'MEDIUM',points:220},{id:'audit',label:'Forest Audit',risk:'LOW',cost:'LOW',points:160}] },
+  MUSIC_FESTIVAL:  { title:'Music Festival Detected',    category:'observation', urgency:[120,240],  primary:['URBAN-LENS'],                  acceptable:['URBAN-LENS'],                    dataProduct:'ndvi',         flavour:'Temporary urban footprint detected. Crowd density nominal. Portable sanitation infrastructure visible at 0.5m resolution. No intervention required.', locations:[[-119,40,'Nevada Desert'],[-2,51,'Glastonbury'],[-116,33,'Coachella']], mitigations:[{id:'ack',label:'Acknowledge & Log',risk:'LOW',cost:'LOW',points:75}] },
+  WHALE_MIGRATION: { title:'Whale Migration Detected',   category:'observation', urgency:[120,240],  primary:['COAST-GUARD'],                 acceptable:['COAST-GUARD'],                   dataProduct:'ocean_colour', flavour:'Biological hotspot confirmed. Whale aggregation detected. Recommend maritime exclusion zone. Magnificent.', locations:[[-120,40,'Pacific Coast'],[-70,45,'Gulf of St Lawrence'],[20,-35,'South Africa Coast']], mitigations:[{id:'ack',label:'Acknowledge & Log',risk:'LOW',cost:'LOW',points:75}] },
+  AURORA_EVENT:    { title:'Aurora Event',               category:'observation', urgency:[90,180],   primary:['SOL-WATCH'],                   acceptable:['SOL-WATCH','FIRE-WATCH','FLOOD-EYE','CARBON-SENSE','URBAN-LENS','COAST-GUARD','STORM-EYE','TOPO-SCAN','FOREST-WATCH'], dataProduct:'thermal', flavour:'Geomagnetic storm affecting sensor calibration. Kp index elevated. Ground operators are reportedly standing outside looking up. Can confirm: worth it.', locations:[[-20,64,'Iceland'],[18,67,'Norway'],[-140,63,'Yukon']], mitigations:[{id:'ack',label:'Acknowledge & Log',risk:'LOW',cost:'LOW',points:75}] },
+  STADIUM_EVENT:   { title:'Major Stadium Event',        category:'observation', urgency:[90,180],   primary:['URBAN-LENS'],                  acceptable:['URBAN-LENS','FIRE-WATCH'],       dataProduct:'thermal',      flavour:'Large gathering detected. Heat signature consistent with approximately 90,000 humans enjoying themselves. Vendor activity elevated near northern concourse.', locations:[[-87,42,'Chicago'],[2,48,'Paris'],[151,-34,'Sydney'],[0,51,'London']], mitigations:[{id:'ack',label:'Acknowledge & Log',risk:'LOW',cost:'LOW',points:75}] },
+  ROCKET_LAUNCH:   { title:'Rocket Launch Plume',        category:'observation', urgency:[60,120],   primary:['CARBON-SENSE','FIRE-WATCH'],   acceptable:['FIRE-WATCH'],                    dataProduct:'methane',      flavour:'Launch event detected. Propellant plume consistent with hydrocarbon first stage. Ironic that we are using satellites to observe someone launching a satellite.', locations:[[-80,28,'Cape Canaveral'],[100,5,'Baikonur region'],[130,31,'Tanegashima']], mitigations:[{id:'ack',label:'Acknowledge & Log',risk:'LOW',cost:'LOW',points:75}] },
+  BIOLUMINESCENT:  { title:'Bioluminescent Bay',         category:'observation', urgency:[120,240],  primary:['COAST-GUARD'],                 acceptable:['COAST-GUARD'],                   dataProduct:'ocean_colour', flavour:'Dinoflagellate bloom confirmed. Classification: spectacular. Threat level: zero.', locations:[[-67,18,'Puerto Rico'],[125,10,'Philippines'],[-117,31,'Baja California']], mitigations:[{id:'ack',label:'Acknowledge & Log',risk:'LOW',cost:'LOW',points:75}] },
+  DESERT_BLOOM:    { title:'Desert Superbloom',          category:'observation', urgency:[180,300],  primary:['URBAN-LENS'],                  acceptable:['URBAN-LENS'],                    dataProduct:'ndvi',         flavour:'Vegetation anomaly detected. Wildflower superbloom confirmed. Recommend no action except appreciation.', locations:[[-115,33,'Sonoran Desert'],[25,-28,'Namib Desert'],[135,-28,'Outback Australia']], mitigations:[{id:'ack',label:'Acknowledge & Log',risk:'LOW',cost:'LOW',points:75}] },
+  ANTARCTIC_RESUPPLY: { title:'Antarctic Resupply Op',   category:'observation', urgency:[180,360],  primary:['TOPO-SCAN','URBAN-LENS'],      acceptable:['TOPO-SCAN'],                     dataProduct:'lidar',        flavour:'Resupply operation confirmed. Ice runway in use. Someone down there is about to receive fresh vegetables for the first time in four months.', locations:[[-60,-62,'Rothera Station'],[0,-63,'Halley Base'],[76,-62,'Mawson Station']], mitigations:[{id:'ack',label:'Acknowledge & Log',risk:'LOW',cost:'LOW',points:75}] },
+  SAT_LAUNCH_OBS:    { title:'Satellite Launch Detected', category:'observation', urgency:[60,120],  primary:['SOL-WATCH','FIRE-WATCH'],      acceptable:['FIRE-WATCH'],                    dataProduct:'thermal',      flavour:'Launch event detected from L1 vantage. Propellant plume and thermal signature confirmed. Ironic that we are using satellites to observe someone launching a satellite.', locations:[[-80,28,'Cape Canaveral'],[-120,34,'Vandenberg'],[-80,5,'Kourou'],[100,5,'Baikonur']],                               mitigations:[{id:'ack',label:'Acknowledge & Log',risk:'LOW',cost:'LOW',points:75}] },
+  SOLAR_FLARE:       { title:'X-Class Solar Flare',       category:'space_weather', urgency:[60,120],  primary:['SOL-WATCH'],                 acceptable:['SOL-WATCH'],                     dataProduct:'solar',        flavour:'X-class flare detected at L1 vantage point. Peak flux exceeds threshold. HF radio degradation expected. Operators advised to secure sensitive systems.', locations:[[0,62,'Subsolar Region'],[0,62,'Subsolar Region'],[0,62,'Subsolar Region']], mitigations:[{id:'hfwarning',label:'HF Radio Warning',risk:'LOW',cost:'LOW',points:130},{id:'satellite_safe',label:'Safing Mode Alert',risk:'MEDIUM',cost:'MEDIUM',points:160},{id:'grid_protect',label:'Grid Protection Advisory',risk:'LOW',cost:'LOW',points:140}] },
+  CME:               { title:'Coronal Mass Ejection',     category:'space_weather', urgency:[90,180],  primary:['SOL-WATCH'],                 acceptable:['SOL-WATCH'],                     dataProduct:'solar',        flavour:'CME detected at L1. Transit time to Earth estimated at 18-36 hours. Geomagnetic storm watch issued. Grid operators and satellite operators alerted.', locations:[[0,62,'Subsolar Region'],[0,62,'Subsolar Region'],[0,62,'Subsolar Region']], mitigations:[{id:'loadshed',label:'Grid Load Shedding',risk:'HIGH',cost:'HIGH',points:220},{id:'pipeline',label:'Pipeline Current Suppression',risk:'MEDIUM',cost:'MEDIUM',points:190},{id:'transformer',label:'Transformer Protection',risk:'MEDIUM',cost:'MEDIUM',points:180}] },
+  GEOMAGNETIC_STORM: { title:'Geomagnetic Storm',         category:'space_weather', urgency:[120,240], primary:['SOL-WATCH'],                 acceptable:['SOL-WATCH','FIRE-WATCH','FLOOD-EYE','CARBON-SENSE','URBAN-LENS','COAST-GUARD','STORM-EYE'], dataProduct:'solar', flavour:'Kp index reaching storm-level threshold. Induced currents in long conductors. Satellite operators reporting attitude disturbances. Aurora visible at unusually low latitudes.', locations:[[0,62,'Subsolar Region'],[0,62,'Subsolar Region'],[0,62,'Subsolar Region']], mitigations:[{id:'attitude',label:'Satellite Attitude Alert',risk:'MEDIUM',cost:'MEDIUM',points:170},{id:'powerline',label:'Power Line Advisory',risk:'LOW',cost:'LOW',points:150},{id:'ack',label:'Acknowledge & Log',risk:'LOW',cost:'LOW',points:100}] },
+  SATELLITE_DRAG:    { title:'Satellite Drag Event',      category:'space_weather', urgency:[150,300], primary:['SOL-WATCH'],                 acceptable:['SOL-WATCH'],                     dataProduct:'solar',        flavour:'Elevated solar activity heating upper atmosphere. LEO satellite drag increasing. Operators adjusting orbit maintenance burns. Expect increased revisit times across constellation.', locations:[[0,62,'Subsolar Region'],[0,62,'Subsolar Region'],[0,62,'Subsolar Region']], mitigations:[{id:'orbit_adj',label:'Orbit Adjustment Burns',risk:'HIGH',cost:'HIGH',points:200},{id:'rescheduling',label:'Tasking Rescheduling',risk:'LOW',cost:'LOW',points:150},{id:'monitor',label:'Monitor & Log',risk:'LOW',cost:'LOW',points:110}] },
+  RADIO_BLACKOUT:    { title:'Radio Blackout Event',      category:'space_weather', urgency:[60,120],  primary:['SOL-WATCH'],                 acceptable:['SOL-WATCH'],                     dataProduct:'solar',        flavour:'Solar X-ray flux causing D-layer absorption. HF communications blackout on sunlit hemisphere. Ground stations switching to satellite uplink backup systems.', locations:[[0,62,'Subsolar Region'],[0,62,'Subsolar Region'],[0,62,'Subsolar Region']], mitigations:[{id:'backup_comms',label:'Activate Backup Comms',risk:'LOW',cost:'LOW',points:130},{id:'aviation',label:'Aviation HF Warning',risk:'LOW',cost:'LOW',points:150},{id:'maritime',label:'Maritime Safety Notice',risk:'LOW',cost:'LOW',points:120}] },
+};
+
+const MITIGATION_FOLLOWUP_MAP = {
+  WILDFIRE:          'METHANE_PLUME',
+  FLOODING:          'WATER_QUALITY',
+  TROPICAL_STORM:    'FLOODING',
+  VOLCANIC:          'DUST_STORM',
+  OIL_SPILL:         'ALGAL_BLOOM',
+  CME:               'GEOMAGNETIC_STORM',
+  SATELLITE_DRAG:    'GEOMAGNETIC_STORM',
+  SOLAR_FLARE:       'RADIO_BLACKOUT',
+  DEFORESTATION:     'BIOMASS_CHANGE',
+  ILLEGAL_LOGGING:   'DEFORESTATION',
+  METHANE_PLUME:     'OCEAN_CARBON',
+  FIRE_ENCROACHMENT: 'WILDFIRE',
+  CORAL_BLEACHING:   'WATER_QUALITY',
+  GEOMAGNETIC_STORM: 'SATELLITE_DRAG',
+};
+
+function getMitigationFollowup(eventType) {
+  return MITIGATION_FOLLOWUP_MAP[eventType] || eventType;
+}
+
+const MITIGATION_CONSEQUENCES = {
+  WILDFIRE:          { suppress:  {type:'extended_blackout', multiplier:1.6, label:'Thermal array at capacity — extended duty cycle'}, burn: {type:'followup', label:'Controlled burn requires verification pass'} },
+  TROPICAL_STORM:    { evacuate:  {type:'extended_blackout', multiplier:2.0, label:'Mass evacuation coordination — satellite at capacity'} },
+  OIL_SPILL:         { contain:   {type:'extended_blackout', multiplier:1.5, label:'Containment monitoring extends duty cycle'}, regulatory:{type:'residual', penalty:-70, label:'Regulatory response only — residual contamination risk'} },
+  METHANE_PLUME:     { shutdown:  {type:'followup', label:'Shutdown requires verification — follow-up tasking queued'}, media:{type:'residual', penalty:-60, label:'Media disclosure — source unconfirmed, monitoring required'} },
+  CORAL_BLEACHING:   { restore:   {type:'followup', label:'Reef restoration requires ongoing monitoring'}, fishing:{type:'residual', penalty:-50, label:'Fishing ban in place — thermal stress may continue'} },
+  DEFORESTATION:     { reforest:  {type:'followup', label:'Reforestation requires follow-up monitoring'}, regulatory:{type:'extended_blackout', multiplier:1.3, label:'Enforcement monitoring extends tasking window'} },
+  ILLEGAL_LOGGING:   { enforcement:{type:'extended_blackout', multiplier:1.4, label:'Ongoing enforcement ops — duty cycle extended'}, monitor:{type:'residual', penalty:-55, label:'Monitoring only — logging may resume'} },
+  OCEAN_CARBON:      { research:  {type:'residual', penalty:-65, label:'Research flag only — root cause unresolved'} },
+  CROP_FAILURE:      { insurance: {type:'residual', penalty:-60, label:'Insurance assessment only — no intervention deployed'} },
+  ICE_LOSS:          { climate:   {type:'residual', penalty:-55, label:'Report filed — no mitigation action taken'} },
+  BIOMASS_CHANGE:    { carbon_report:{type:'residual', penalty:-50, label:'Report only — biomass loss continues'} },
+  FIRE_ENCROACHMENT: { suppress:  {type:'extended_blackout', multiplier:1.5, label:'Aerial suppression — thermal satellite at duty limit'} },
+  CME:               { loadshed:  {type:'extended_blackout', multiplier:2.0, label:'Grid coordination exhausts tasking capacity'}, pipeline:{type:'extended_blackout', multiplier:1.8, label:'Pipeline protection monitoring extends duty cycle'} },
+  SATELLITE_DRAG:    { orbit_adj: {type:'extended_blackout', multiplier:1.5, label:'Orbit adjustment burns require extended downlink window'} },
+};
+
+const UPGRADE_DEFS = [
+  {
+    id: 'rechargeBoost', name: 'RAPID RECHARGE',
+    desc: 'Satellite cooldown recovery rate boosted.',
+    levels: [
+      { label: 'BASIC', cost: 100, effect: '+25% cooldown speed' },
+      { label: 'ADVANCED', cost: 220, effect: '+50% cooldown speed' },
+    ],
+  },
+  {
+    id: 'acquisitionSpeed', name: 'PRIORITY UPLINK',
+    desc: 'Reduces satellite acquisition delay for all LEO passes.',
+    levels: [
+      { label: 'BASIC', cost: 80, effect: '\u22123s acquisition delay' },
+      { label: 'ADVANCED', cost: 180, effect: '\u22126s acquisition delay' },
+    ],
+  },
+  {
+    id: 'dutyRecovery', name: 'THERMAL MANAGEMENT',
+    desc: 'Duty cycle dissipates faster between tasking windows.',
+    levels: [
+      { label: 'BASIC', cost: 120, effect: '+50% duty cycle recovery' },
+      { label: 'ADVANCED', cost: 260, effect: '+100% duty cycle recovery' },
+    ],
+  },
+  {
+    id: 'emergencyRecharge', name: 'EMERGENCY RECHARGE',
+    desc: 'Instantly halves cooldown timers on all satellites. Consumable \u2014 1 use per purchase.',
+    levels: [
+      { label: 'USE (\xd71)', cost: 60, effect: 'All cooldowns \xf72 now' },
+      { label: 'USE (\xd71)', cost: 60, effect: 'All cooldowns \xf72 now' },
+    ],
+    repeatable: true,
+  },
+];
+
+const CRISIS_EVENT_KEYS    = Object.keys(EVENT_TYPES).filter(k => !['observation','space_weather'].includes(EVENT_TYPES[k].category));
+const OBS_EVENT_KEYS       = Object.keys(EVENT_TYPES).filter(k => EVENT_TYPES[k].category === 'observation');
+const SPACE_WEATHER_KEYS   = Object.keys(EVENT_TYPES).filter(k => EVENT_TYPES[k].category === 'space_weather');
+
+// ─── CONTINENT POLYGONS ──────────────────────────────────────────────────────
+const CONTINENTS = [
+  [[-168,71],[-140,70],[-100,73],[-85,70],[-63,47],[-53,47],[-60,44],[-70,42],[-75,35],[-80,25],[-90,20],[-85,10],[-77,8],[-80,15],[-90,17],[-105,20],[-110,22],[-117,32],[-122,37],[-124,49],[-130,54],[-140,60],[-155,60],[-168,65]],
+  [[-73,83],[-20,83],[-17,77],[-18,70],[-25,65],[-45,60],[-52,66],[-57,72],[-65,76]],
+  [[-80,12],[-75,10],[-60,8],[-50,5],[-35,-5],[-35,-12],[-38,-18],[-40,-22],[-42,-22],[-48,-27],[-50,-32],[-53,-34],[-58,-38],[-63,-42],[-65,-50],[-68,-56],[-72,-52],[-75,-45],[-73,-38],[-70,-30],[-68,-20],[-70,-10],[-75,-5],[-80,5]],
+  [[-10,36],[0,36],[10,37],[18,38],[28,36],[36,37],[32,42],[30,46],[25,50],[22,54],[15,57],[10,56],[5,58],[0,58],[-5,54],[-8,48],[-5,44],[0,43],[-5,38],[-10,38]],
+  [[5,58],[8,58],[18,69],[28,71],[30,70],[28,65],[25,60],[20,58],[12,56]],
+  [[-17,15],[-15,10],[-8,5],[0,5],[10,5],[15,0],[20,-5],[25,-10],[32,-18],[35,-20],[37,-26],[35,-30],[28,-35],[18,-35],[15,-30],[12,-20],[10,-5],[12,5],[15,12],[20,15],[25,20],[30,25],[35,30],[32,35],[25,37],[15,37],[10,35],[0,32],[-5,30],[-10,28],[-17,22]],
+  [[35,37],[40,37],[55,23],[60,22],[58,15],[52,12],[45,12],[42,15],[38,20],[35,30]],
+  [[30,72],[60,73],[90,73],[120,72],[140,73],[165,68],[170,60],[160,54],[140,50],[130,43],[120,45],[100,50],[80,55],[60,60],[50,65],[40,68]],
+  [[60,40],[75,38],[90,28],[98,22],[102,8],[98,4],[90,10],[80,18],[72,22],[62,24],[55,28],[58,35]],
+  [[98,22],[108,20],[110,18],[108,12],[104,2],[102,3],[100,5],[98,10]],
+  [[114,-22],[118,-20],[130,-13],[136,-12],[140,-15],[150,-22],[154,-28],[152,-32],[148,-38],[138,-36],[130,-35],[120,-34],[116,-32],[114,-26]],
+  [[130,31],[135,33],[140,36],[142,40],[141,43],[130,43]],
+  [[-180,-68],[180,-68],[180,-80],[-180,-80]],
+];
+
+// ─── GAME STATE ──────────────────────────────────────────────────────────────
+let gameState = 'INTRO';
+let gameTime = 0;
+let lastTimestamp = 0;
+let score = 0;
+let streak = 0;
+let eventsResolved = 0;
+let eventsFailed = 0;
+let maxStreak = 0;
+let activeEvents = [];
+let nextEventId = 1;
+let selectedEvent = null;
+let taskingSat = null;
+let taskingStart = 0;
+let taskingDuration = 0;
+let resolveEvent = null;
+let resolveMatch = 'none'; // optimal/acceptable/wrong
+let eventLog = [];
+let floatingTexts = [];
+let lastSpawnTime = -99; // trigger immediate first spawn
+let cloudFrame = 0;
+let gameDuration = 600; // seconds — chosen at game start
+let pendingTaskings = [];   // background acquisition tasks
+let forestWatchSARForced = false;  // player override for FOREST-WATCH
+let scheduledFollowups = []; // [{lon, lat, eventType, fireAt}]
+let residualDrains = [];     // [{amount, rate}] — score drain per second after MEDIUM mitigations
+let leoDragActive = false;   // SATELLITE_DRAG effect — LEO acquisition delay ×1.5
+let leoDragTimer  = 0;       // seconds remaining
+let cmeActive     = false;   // CME blackout effect — all LEO sats in COOLDOWN
+let cmeTimer      = 0;       // seconds remaining
+let credits = 0;
+let upgrades = {
+  rechargeBoost: 0,      // 0=none, 1=basic(+25%), 2=advanced(+50%)
+  acquisitionSpeed: 0,   // 0=none, 1=basic(-3s), 2=advanced(-6s)
+  dutyRecovery: 0,       // 0=none, 1=fast(+50%), 2=faster(+100%)
+  emergencyRecharge: 0,  // consumable uses remaining
+};
+let cloudCells = new Uint8Array(32 * 20);
+let sunLon = -90; // starting sun longitude; advances with gameTime
+
+// ─── SATELLITE STATE ─────────────────────────────────────────────────────────
+let satState = SATELLITES.map(s => ({
+  id: s.id,
+  status: 'NOMINAL', // NOMINAL, TASKING, COOLDOWN
+  cooldown: 0,
+  taskProgress: 0,
+  taskDuration: 0,
+  dutyCycle: 0,
+  extendedBlackout: false,
+}));
+
+// ─── CLOUD SYSTEM ────────────────────────────────────────────────────────────
+const clouds = [];
+for (let i = 0; i < 60; i++) {
+  clouds.push({
+    cx: Math.random() * 1120,
+    cy: Math.random() * 852,
+    rx: 60 + Math.random() * 120,
+    ry: 20 + Math.random() * 40,
+    alpha: 0.12 + Math.random() * 0.13,
+    speed: 0.02 + Math.random() * 0.04,
+  });
+}
+
+function updateClouds(dt) {
+  for (const c of clouds) {
+    c.cx += c.speed * dt * 60;
+    if (c.cx - c.rx > 1120) c.cx = -c.rx;
+  }
+}
+
+function updateCloudCells() {
+  cloudCells.fill(0);
+  for (const c of clouds) {
+    const cellX1 = Math.max(0, Math.floor((c.cx - c.rx) / (1120/32)));
+    const cellX2 = Math.min(31, Math.floor((c.cx + c.rx) / (1120/32)));
+    const cellY1 = Math.max(0, Math.floor((c.cy - c.ry) / (852/20)));
+    const cellY2 = Math.min(19, Math.floor((c.cy + c.ry) / (852/20)));
+    for (let cx = cellX1; cx <= cellX2; cx++) {
+      for (let cy = cellY1; cy <= cellY2; cy++) {
+        cloudCells[cy * 32 + cx] = 1;
+      }
+    }
+  }
+}
+
+function isEventCloudy(ev) {
+  const x = lonToX(ev.lon), y = latToY(ev.lat);
+  const cx = Math.floor(x / (1120/32));
+  const cy = Math.floor(y / (852/20));
+  const idx = Math.max(0, Math.min(19, cy)) * 32 + Math.max(0, Math.min(31, cx));
+  return cloudCells[idx] === 1;
+}
+
+// ─── NOISE ───────────────────────────────────────────────────────────────────
+function noise2D(x, y, seed) {
+  const n = Math.sin(x * 127.1 + y * 311.7 + seed * 74.3) * 43758.5453;
+  return n - Math.floor(n);
+}
+
+// ─── DRAW MAP ────────────────────────────────────────────────────────────────
+function drawMap() {
+  const canvas = document.getElementById('map-canvas');
+  const ctx = canvas.getContext('2d');
+
+  // Ocean fill — rich navy
+  ctx.fillStyle = '#1a4a78';
+  ctx.fillRect(0, 0, MAP_W, MAP_H);
+
+  // Ocean gradient — slightly darker toward bottom
+  const oceanGrd = ctx.createLinearGradient(0, 0, 0, MAP_H);
+  oceanGrd.addColorStop(0, 'rgba(10,30,60,0.35)');
+  oceanGrd.addColorStop(0.5, 'rgba(10,30,60,0)');
+  oceanGrd.addColorStop(1, 'rgba(10,30,60,0.4)');
+  ctx.fillStyle = oceanGrd;
+  ctx.fillRect(0, 0, MAP_W, MAP_H);
+
+  // Graticule — lat/lon grid every 30°
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 0.8;
+  for (let lon = -180; lon <= 180; lon += 30) {
+    const x = lonToX(lon);
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, MAP_H); ctx.stroke();
+  }
+  for (let lat = -80; lat <= 80; lat += 30) {
+    const y = latToY(lat);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(MAP_W, y); ctx.stroke();
+  }
+
+  // Equator — faint warm line
+  ctx.strokeStyle = 'rgba(255,200,100,0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([]);
+  const eq = latToY(0);
+  ctx.beginPath(); ctx.moveTo(0, eq); ctx.lineTo(MAP_W, eq); ctx.stroke();
+
+  // Tropics — dashed, faint orange
+  ctx.setLineDash([6, 6]);
+  ctx.strokeStyle = 'rgba(255,160,80,0.07)';
+  ctx.lineWidth = 1;
+  [23.5, -23.5].forEach(lat => {
+    const y = latToY(lat);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(MAP_W, y); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  // Continent fill — dark forest green with subtle top gradient
+  for (const poly of CONTINENTS) {
+    ctx.beginPath();
+    poly.forEach(([lon, lat], i) => {
+      const x = lonToX(lon), y = latToY(lat);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = '#2a4a2a';
+    ctx.fill();
+  }
+
+  // Continent top-light gradient (lighter toward the north)
+  for (const poly of CONTINENTS) {
+    // Find bounding box
+    let minY = MAP_H, maxY = 0;
+    poly.forEach(([lon, lat]) => {
+      const y = latToY(lat);
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    });
+    const landGrd = ctx.createLinearGradient(0, minY, 0, maxY);
+    landGrd.addColorStop(0, 'rgba(58,80,48,0.55)');
+    landGrd.addColorStop(1, 'rgba(20,36,20,0.35)');
+    ctx.beginPath();
+    poly.forEach(([lon, lat], i) => {
+      const x = lonToX(lon), y = latToY(lat);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = landGrd;
+    ctx.fill();
+  }
+
+  // Coastline — lit highlight
+  ctx.strokeStyle = 'rgba(120,180,220,0.5)';
+  ctx.lineWidth = 1.5;
+  for (const poly of CONTINENTS) {
+    ctx.beginPath();
+    poly.forEach(([lon, lat], i) => {
+      const x = lonToX(lon), y = latToY(lat);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  // Coastline glow (secondary pass, wider shadow)
+  ctx.save();
+  ctx.shadowBlur = 6;
+  ctx.shadowColor = 'rgba(80,160,220,0.4)';
+  ctx.strokeStyle = 'rgba(100,170,230,0.25)';
+  ctx.lineWidth = 2.5;
+  for (const poly of CONTINENTS) {
+    ctx.beginPath();
+    poly.forEach(([lon, lat], i) => {
+      const x = lonToX(lon), y = latToY(lat);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Polar ice caps — Arctic (top strip) and Antarctic (bottom strip)
+  const arcticY = latToY(80);
+  const arcticBotY = latToY(68);
+  const antarcticTopY = latToY(-62);
+  const antarcticBotY = latToY(-80);
+
+  // Arctic
+  const arcticGrd = ctx.createLinearGradient(0, arcticY, 0, arcticBotY);
+  arcticGrd.addColorStop(0, 'rgba(220,235,255,0.55)');
+  arcticGrd.addColorStop(1, 'rgba(200,220,255,0)');
+  ctx.fillStyle = arcticGrd;
+  ctx.fillRect(0, arcticY, MAP_W, arcticBotY - arcticY);
+
+  // Antarctic
+  const antarcticGrd = ctx.createLinearGradient(0, antarcticTopY, 0, antarcticBotY);
+  antarcticGrd.addColorStop(0, 'rgba(200,220,255,0)');
+  antarcticGrd.addColorStop(1, 'rgba(220,235,255,0.65)');
+  ctx.fillStyle = antarcticGrd;
+  ctx.fillRect(0, antarcticTopY, MAP_W, antarcticBotY - antarcticTopY);
+}
+
+// ─── DRAW CLOUDS ─────────────────────────────────────────────────────────────
+function drawClouds() {
+  const canvas = document.getElementById('cloud-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, MAP_W, MAP_H);
+  for (const c of clouds) {
+    const grd = ctx.createRadialGradient(c.cx, c.cy, 0, c.cx, c.cy, Math.max(c.rx, c.ry));
+    grd.addColorStop(0, `rgba(180,200,220,${c.alpha})`);
+    grd.addColorStop(1, 'rgba(180,200,220,0)');
+    ctx.save();
+    ctx.scale(1, c.ry / c.rx);
+    ctx.beginPath();
+    ctx.arc(c.cx, c.cy * (c.rx / c.ry), c.rx, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ─── SATELLITE POSITION ──────────────────────────────────────────────────────
+function getSatPos(satIndex, t) {
+  const phases = [0.0, 0.15, 0.3, 0.45, 0.6, 0.8, 0.9];
+  const T = 5700;
+  const phase = phases[satIndex] || 0;
+  const tAdj = (t + phase * T) % T;
+  const frac = tAdj / T;
+  const lonDeg = -180 + frac * 360;
+  const latDeg = Math.sin(frac * 2 * Math.PI) * 75;
+  return { x: lonToX(lonDeg), y: latToY(latDeg) };
+}
+
+// ─── DRAW EVENTS ─────────────────────────────────────────────────────────────
+function drawEvents(t) {
+  const canvas = document.getElementById('event-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, MAP_W, MAP_H);
+
+  // Night hemisphere overlay
+  const dawnX = lonToX(sunLon - 90);
+  const duskX = lonToX(sunLon + 90);
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,5,25,0.38)';
+  if (dawnX < duskX) {
+    // Night on left and right
+    ctx.fillRect(0, 0, dawnX, MAP_H);
+    ctx.fillRect(duskX, 0, MAP_W - duskX, MAP_H);
+  } else {
+    // Night in the middle
+    ctx.fillRect(duskX, 0, dawnX - duskX, MAP_H);
+  }
+  // Terminator glow
+  const gradDawn = ctx.createLinearGradient(dawnX - 15, 0, dawnX + 15, 0);
+  gradDawn.addColorStop(0, 'rgba(255,160,60,0)');
+  gradDawn.addColorStop(0.5, 'rgba(255,160,60,0.12)');
+  gradDawn.addColorStop(1, 'rgba(255,160,60,0)');
+  ctx.fillStyle = gradDawn;
+  ctx.fillRect(dawnX - 15, 0, 30, MAP_H);
+  const gradDusk = ctx.createLinearGradient(duskX - 15, 0, duskX + 15, 0);
+  gradDusk.addColorStop(0, 'rgba(255,160,60,0)');
+  gradDusk.addColorStop(0.5, 'rgba(255,160,60,0.12)');
+  gradDusk.addColorStop(1, 'rgba(255,160,60,0)');
+  ctx.fillStyle = gradDusk;
+  ctx.fillRect(duskX - 15, 0, 30, MAP_H);
+  // Sun position indicator
+  ctx.font = '12px serif';
+  ctx.fillStyle = 'rgba(255,220,80,0.5)';
+  ctx.textAlign = 'center';
+  ctx.fillText('☀', lonToX(sunLon), 12);
+  ctx.restore();
+
+  // Draw satellite orbital paths and dots
+  SATELLITES.forEach((sat, si) => {
+    if (sat.orbit === 'L1') {
+      // SOL-WATCH — fixed L1 Lagrange point, shown as sun icon at top-center
+      const sx = MAP_W / 2, sy = 22;
+      const hasSpaceWeather = activeEvents.some(e => e.category === 'space_weather');
+      const swColor = hasSpaceWeather ? '#ffee44' : '#887722';
+      const swAlpha = hasSpaceWeather ? 1.0 : 0.35;
+      const swLabel = hasSpaceWeather ? 'SOL-WATCH  L1 \u2014 ACTIVE' : 'SOL-WATCH  L1 \u2014 STANDBY';
+      ctx.save();
+      ctx.globalAlpha = swAlpha;
+      ctx.shadowBlur = hasSpaceWeather ? 20 : 8;
+      ctx.shadowColor = swColor;
+      // Pulsing outer glow ring when space weather active
+      if (hasSpaceWeather) {
+        const glowR = 14 + Math.sin(t * 0.15) * 4;
+        ctx.strokeStyle = swColor;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.5 + Math.sin(t * 0.15) * 0.3;
+        ctx.beginPath();
+        ctx.arc(sx, sy, glowR, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = swAlpha;
+      }
+      // Sun circle
+      ctx.fillStyle = swColor;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 8, 0, Math.PI * 2);
+      ctx.fill();
+      // 8 radiating rays
+      ctx.strokeStyle = swColor;
+      ctx.lineWidth = 1.5;
+      for (let r = 0; r < 8; r++) {
+        const angle = (r / 8) * Math.PI * 2 + t * 0.01;
+        ctx.beginPath();
+        ctx.moveTo(sx + Math.cos(angle) * 11, sy + Math.sin(angle) * 11);
+        ctx.lineTo(sx + Math.cos(angle) * 18, sy + Math.sin(angle) * 18);
+        ctx.stroke();
+      }
+      // Solar wind cone pointing down toward Earth
+      ctx.strokeStyle = swColor + '44';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx - 12, sy + 20);
+      ctx.lineTo(sx, sy + 14);
+      ctx.lineTo(sx + 12, sy + 20);
+      ctx.stroke();
+      // Label
+      ctx.fillStyle = swColor;
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(swLabel, sx, sy + 32);
+      ctx.font = '8px monospace';
+      ctx.fillText('\u26a1 SPACE WEATHER MONITOR', sx, sy + 42);
+      ctx.restore();
+    } else if (sat.orbit === 'GEO') {
+      // STORM-EYE fixed GEO
+      const gx = lonToX(140), gy = latToY(0);
+      ctx.save();
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = sat.color;
+      ctx.fillStyle = sat.color;
+      ctx.beginPath();
+      ctx.arc(gx, gy, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      // Radiating lines
+      ctx.strokeStyle = sat.color + '66';
+      ctx.lineWidth = 1;
+      for (let a = 0; a < 4; a++) {
+        const angle = (a / 4) * Math.PI * 2 + t * 0.3;
+        ctx.beginPath();
+        ctx.moveTo(gx + Math.cos(angle) * 10, gy + Math.sin(angle) * 10);
+        ctx.lineTo(gx + Math.cos(angle) * 22, gy + Math.sin(angle) * 22);
+        ctx.stroke();
+      }
+    } else {
+      const idx = sat.satIndex;
+      const pos = getSatPos(idx, t);
+      // Draw orbit arc
+      ctx.setLineDash([3, 5]);
+      ctx.strokeStyle = sat.color + '40';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let step = 0; step <= 60; step++) {
+        const T = 5700;
+        const phases = [0.0, 0.15, 0.3, 0.45, 0.6, 0.8, 0.9];
+        const phase = phases[idx] || 0;
+        const tStep = t + (step / 60) * (T * 0.25);
+        const tAdj = (tStep + phase * T) % T;
+        const frac = tAdj / T;
+        const lonDeg = -180 + frac * 360;
+        const latDeg = Math.sin(frac * 2 * Math.PI) * 75;
+        const px = lonToX(lonDeg), py = latToY(latDeg);
+        step === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Satellite dot
+      ctx.save();
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = sat.color;
+      ctx.fillStyle = sat.color;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  });
+
+  // Draw event markers
+  for (const ev of activeEvents) {
+    const x = lonToX(ev.lon), y = latToY(ev.lat);
+    const elapsed = gameTime - ev.spawnTime;
+    const urgFrac = elapsed / ev.urgencyMax;
+    const isObs = ev.category === 'observation';
+    const isSpaceWeather = ev.category === 'space_weather';
+    const isSelected = selectedEvent && selectedEvent.id === ev.id;
+    const isDataReady = ev.status === 'DATA_READY';
+
+    let baseColor;
+    if (isDataReady) {
+      baseColor = '#00eeff';
+    } else if (isObs) {
+      baseColor = '#00ccbb';
+    } else if (isSpaceWeather) {
+      baseColor = '#ffcc22';
+    } else if (urgFrac > 0.8) {
+      baseColor = '#ff3333';
+    } else if (urgFrac > 0.5) {
+      baseColor = '#ff7700';
+    } else {
+      baseColor = '#ffaa00';
+    }
+
+    // Pulse rate
+    let pulseRate = isObs ? 1 : (urgFrac > 0.8 ? 4 : urgFrac > 0.5 ? 2 : 1);
+    const pulse = Math.sin(t * pulseRate * 0.1) * 4;
+
+    // Outer ring
+    ctx.save();
+    ctx.shadowBlur = 16;
+    ctx.shadowColor = baseColor;
+    ctx.strokeStyle = baseColor;
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.6 + Math.sin(t * pulseRate * 0.1) * 0.3;
+    ctx.beginPath();
+    ctx.arc(x, y, 14 + pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    if (isDataReady) {
+      // Bright cyan data-ready pulse
+      const readyPulse = Math.sin(t * 0.5) * 0.4 + 0.6;
+      ctx.save();
+      ctx.shadowBlur = 24;
+      ctx.shadowColor = '#00eeff';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = readyPulse;
+      ctx.beginPath();
+      ctx.arc(x, y, 30, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // Mitigation timeout arc (amber, showing remaining time before escalation)
+      const urgElapsed = gameTime - ev.spawnTime;
+      const remaining  = Math.max(0, 1 - urgElapsed / ev.urgencyMax);
+      ctx.strokeStyle = '#ffaa00';
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.arc(x, y, 36, -Math.PI/2, -Math.PI/2 + remaining * Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    } else if (!isObs) {
+      // Urgency arc
+      const remaining = 1 - urgFrac;
+      ctx.strokeStyle = baseColor;
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      ctx.arc(x, y, 20, -Math.PI / 2, -Math.PI / 2 + remaining * Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Center dot
+    ctx.save();
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = baseColor;
+    ctx.fillStyle = baseColor;
+    ctx.beginPath();
+    ctx.arc(x, y, isSelected ? 7 : 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Selected ring
+    if (isSelected) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(x, y, 24, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Label — flip below marker if near top, left-align if near right edge
+    ctx.fillStyle = baseColor;
+    ctx.font = '11px Courier New';
+    const shortTitle = ev.type.replace(/_/g, ' ').substring(0, 16);
+    const labelText = isDataReady ? '▶ ' + shortTitle : shortTitle;
+    const labelY = y < 50 ? y + 42 : y - 28;
+    const labelX = Math.min(x, MAP_W - 90);
+    ctx.textAlign = x > MAP_W - 90 ? 'right' : 'center';
+    ctx.fillText(labelText, labelX, labelY);
+    ctx.textAlign = 'left';
+  }
+
+  // Floating texts
+  for (const ft of floatingTexts) {
+    const alpha = 1 - ft.age;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = ft.color;
+    ctx.font = 'bold 14px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText(ft.text, ft.x, ft.y - ft.age * 40);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ─── PROCEDURAL DATA PRODUCTS ────────────────────────────────────────────────
+function drawDataProduct(type, seed) {
+  const canvas = document.getElementById('product-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = 320, H = 240;
+  ctx.clearRect(0, 0, W, H);
+
+  if (type === 'thermal') {
+    ctx.fillStyle = '#05050a';
+    ctx.fillRect(0, 0, W, H);
+    // Background noise
+    for (let y = 0; y < H; y += 2) {
+      for (let x = 0; x < W; x += 2) {
+        const n = noise2D(x / 40, y / 40, seed);
+        if (n > 0.7) {
+          const v = Math.floor((n - 0.7) / 0.3 * 80);
+          ctx.fillStyle = `rgb(${v},${Math.floor(v*0.3)},0)`;
+          ctx.fillRect(x, y, 2, 2);
+        }
+      }
+    }
+    // 2-3 hotspots
+    const nHots = 2 + Math.floor(noise2D(seed, 1, 1) * 2);
+    for (let h = 0; h < nHots; h++) {
+      const hx = 50 + noise2D(h, seed, 2) * 220;
+      const hy = 40 + noise2D(h, seed, 3) * 160;
+      const grd = ctx.createRadialGradient(hx, hy, 0, hx, hy, 40 + noise2D(h, seed, 4) * 30);
+      grd.addColorStop(0, 'rgba(255,255,100,0.9)');
+      grd.addColorStop(0.3, 'rgba(255,120,0,0.7)');
+      grd.addColorStop(0.7, 'rgba(200,30,0,0.4)');
+      grd.addColorStop(1, 'rgba(100,0,0,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(hx, hy, 70, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Scan lines
+    ctx.strokeStyle = 'rgba(0,255,100,0.05)';
+    ctx.lineWidth = 1;
+    for (let y = 0; y < H; y += 4) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+  } else if (type === 'sar_flood') {
+    // SAR land
+    for (let y = 0; y < H; y += 2) {
+      for (let x = 0; x < W; x += 2) {
+        const n = noise2D(x / 30, y / 30, seed);
+        const speckle = noise2D(x / 2, y / 2, seed + 100);
+        const v = Math.floor(n * 120 + speckle * 60);
+        ctx.fillStyle = `rgb(${v},${v},${v})`;
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+    // Flood inundation
+    const fx = 60 + noise2D(seed, 2, 3) * 120;
+    const fy = 60 + noise2D(seed, 3, 2) * 80;
+    const grd = ctx.createRadialGradient(fx, fy, 0, fx, fy, 90);
+    grd.addColorStop(0, 'rgba(50,100,255,0.95)');
+    grd.addColorStop(0.5, 'rgba(30,60,200,0.7)');
+    grd.addColorStop(1, 'rgba(10,20,120,0)');
+    ctx.save();
+    ctx.scale(1.8, 0.9);
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(fx / 1.8, fy / 0.9, 90, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // SAR legend line
+    ctx.fillStyle = 'rgba(50,100,255,0.8)';
+    ctx.font = '9px Courier New';
+    ctx.fillText('INUNDATION EXTENT', 8, H - 10);
+  } else if (type === 'ndvi') {
+    const colors = ['#3a1a00', '#8a5a10', '#2a8a20', '#004400'];
+    for (let y = 0; y < H; y += 2) {
+      for (let x = 0; x < W; x += 2) {
+        const n = noise2D(x / 50, y / 50, seed);
+        const n2 = noise2D(x / 10, y / 10, seed + 50);
+        const band = Math.min(3, Math.floor((n + n2 * 0.3) * 3.5));
+        ctx.fillStyle = colors[Math.max(0, band)];
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+    // Deforestation cleared area
+    ctx.fillStyle = '#8a5a10';
+    ctx.fillRect(120, 80, 80 + noise2D(seed, 5, 5) * 60, 50 + noise2D(seed, 6, 6) * 30);
+    ctx.fillStyle = 'rgba(255,200,0,0.5)';
+    ctx.strokeStyle = 'rgba(255,200,0,0.9)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(118, 78, 84 + noise2D(seed, 5, 5) * 60, 54 + noise2D(seed, 6, 6) * 30);
+    ctx.font = '9px Courier New';
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillText('ANOMALY ZONE', 120, 72);
+  } else if (type === 'ocean_colour') {
+    // Deep ocean
+    for (let y = 0; y < H; y += 2) {
+      for (let x = 0; x < W; x += 2) {
+        const n = noise2D(x / 40, y / 40, seed);
+        const r = Math.floor(0 + n * 10);
+        const g = Math.floor(20 + n * 40);
+        const b = Math.floor(60 + n * 80);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+    // Chlorophyll / bloom patches
+    for (let p = 0; p < 3; p++) {
+      const px = 40 + noise2D(p, seed, 10) * 240;
+      const py = 40 + noise2D(p, seed, 11) * 160;
+      const grd = ctx.createRadialGradient(px, py, 0, px, py, 50);
+      grd.addColorStop(0, 'rgba(0,200,120,0.8)');
+      grd.addColorStop(1, 'rgba(0,100,60,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(px, py, 50, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Plume / slick
+    ctx.save();
+    ctx.translate(180, 120);
+    ctx.rotate(0.4);
+    const plume = ctx.createRadialGradient(0, 0, 0, 0, 0, 60);
+    plume.addColorStop(0, 'rgba(80,50,10,0.9)');
+    plume.addColorStop(1, 'rgba(40,25,5,0)');
+    ctx.scale(2, 0.5);
+    ctx.fillStyle = plume;
+    ctx.beginPath();
+    ctx.arc(0, 0, 60, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(0,200,120,0.7)';
+    ctx.font = '9px Courier New';
+    ctx.fillText('CHLOROPHYLL ANOMALY', 8, H - 10);
+  } else if (type === 'methane') {
+    ctx.fillStyle = '#030308';
+    ctx.fillRect(0, 0, W, H);
+    // Purple diffuse plumes
+    for (let p = 0; p < 2; p++) {
+      const px = 100 + noise2D(p, seed, 20) * 150;
+      const py = 80 + noise2D(p, seed, 21) * 100;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(-0.3);
+      const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, 70);
+      grd.addColorStop(0, 'rgba(200,80,255,0.8)');
+      grd.addColorStop(0.5, 'rgba(100,20,160,0.4)');
+      grd.addColorStop(1, 'rgba(50,0,80,0)');
+      ctx.scale(2, 0.6);
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(0, 0, 70, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    // Stars/noise
+    for (let i = 0; i < 200; i++) {
+      const nx = noise2D(i, seed, 99) * W;
+      const ny = noise2D(i, seed, 98) * H;
+      const nv = noise2D(i * 2, seed, 97);
+      if (nv > 0.7) {
+        ctx.fillStyle = `rgba(150,50,200,${(nv - 0.7) * 2})`;
+        ctx.fillRect(nx, ny, 1, 1);
+      }
+    }
+    ctx.fillStyle = 'rgba(200,80,255,0.7)';
+    ctx.font = '9px Courier New';
+    ctx.fillText('CH4 COLUMN CONCENTRATION', 8, H - 10);
+  } else if (type === 'lidar') {
+    const elevColors = ['#000066','#0000aa','#0066cc','#00aacc','#00ccaa','#44cc44','#aacc22','#ccaa00','#cc6600','#cc2200','#ff4400','#ffaa00'];
+    for (let y = 0; y < H; y += 2) {
+      for (let x = 0; x < W; x += 2) {
+        const n = noise2D(x / 60, y / 60, seed);
+        const n2 = noise2D(x / 20, y / 20, seed + 30) * 0.3;
+        const band = Math.min(11, Math.floor((n + n2) * 10));
+        ctx.fillStyle = elevColors[Math.max(0, band)];
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+    // Contour lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < 8; i++) {
+      const threshold = i / 8;
+      ctx.beginPath();
+      for (let x = 0; x < W; x += 4) {
+        const n = noise2D(x / 60, threshold * H / 60, seed);
+        const y2 = threshold * H + (n - 0.5) * 40;
+        x === 0 ? ctx.moveTo(x, y2) : ctx.lineTo(x, y2);
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#ffaa00';
+    ctx.font = '9px Courier New';
+    ctx.fillText('ELEVATION MODEL (DEM)', 8, H - 10);
+  } else if (type === 'solar') {
+    // Solar data product — EUV/X-ray imagery with solar wind indicators
+    ctx.fillStyle = '#050208';
+    ctx.fillRect(0, 0, W, H);
+    // Solar disc
+    const cx2 = W / 2, cy2 = H / 2;
+    const solarGrd = ctx.createRadialGradient(cx2, cy2, 10, cx2, cy2, 80);
+    solarGrd.addColorStop(0, 'rgba(255,230,80,0.9)');
+    solarGrd.addColorStop(0.4, 'rgba(255,100,20,0.6)');
+    solarGrd.addColorStop(0.8, 'rgba(200,30,10,0.3)');
+    solarGrd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = solarGrd;
+    ctx.beginPath();
+    ctx.arc(cx2, cy2, 80, 0, Math.PI * 2);
+    ctx.fill();
+    // Solar flare plume
+    const flareAngle = noise2D(seed, 1, 5) * Math.PI * 2;
+    ctx.save();
+    ctx.translate(cx2, cy2);
+    ctx.rotate(flareAngle);
+    const flareGrd = ctx.createRadialGradient(60, 0, 0, 60, 0, 55);
+    flareGrd.addColorStop(0, 'rgba(255,200,50,0.8)');
+    flareGrd.addColorStop(0.5, 'rgba(255,80,0,0.4)');
+    flareGrd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.scale(1.8, 0.4);
+    ctx.fillStyle = flareGrd;
+    ctx.beginPath();
+    ctx.arc(60, 0, 55, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // Particle stream
+    for (let p = 0; p < 30; p++) {
+      const px = noise2D(p, seed, 50) * W;
+      const py = noise2D(p, seed, 51) * H;
+      const bright = noise2D(p, seed, 52);
+      ctx.fillStyle = `rgba(255,200,80,${bright * 0.6})`;
+      ctx.fillRect(px, py, 2, 1);
+    }
+    // Kp index bar
+    const kp = 4 + Math.floor(noise2D(seed, 3, 3) * 5);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(8, H - 28, 160, 16);
+    ctx.fillStyle = kp >= 7 ? '#ff3333' : kp >= 5 ? '#ffaa00' : '#44ff88';
+    ctx.fillRect(8, H - 28, kp * 16, 16);
+    ctx.fillStyle = '#eee';
+    ctx.font = '9px Courier New';
+    ctx.fillText(`Kp-INDEX: ${kp}   SOLAR WIND MONITOR`, 12, H - 16);
+    ctx.fillStyle = '#ffee44';
+    ctx.fillText('SOL-WATCH / EUV COMPOSITE', 8, H - 36);
+  }
+
+  // Scanline overlay
+  const scanCtx = canvas.getContext('2d');
+  scanCtx.strokeStyle = 'rgba(0,255,136,0.04)';
+  scanCtx.lineWidth = 1;
+  for (let y = 0; y < H; y += 3) {
+    scanCtx.beginPath();
+    scanCtx.moveTo(0, y);
+    scanCtx.lineTo(W, y);
+    scanCtx.stroke();
+  }
+
+  // Corner markers
+  const corners = [[0,0],[W,0],[W,H],[0,H]];
+  scanCtx.strokeStyle = 'rgba(0,255,136,0.4)';
+  scanCtx.lineWidth = 1;
+  corners.forEach(([cx, cy]) => {
+    const sx = cx === 0 ? 1 : -1, sy = cy === 0 ? 1 : -1;
+    scanCtx.beginPath();
+    scanCtx.moveTo(cx + sx * 1, cy + sy * 8);
+    scanCtx.lineTo(cx + sx * 1, cy + sy * 1);
+    scanCtx.lineTo(cx + sx * 8, cy + sy * 1);
+    scanCtx.stroke();
+  });
+}
+
+// ─── SATELLITE CARDS ─────────────────────────────────────────────────────────
+function buildSatCards() {
+  const container = document.getElementById('sat-cards');
+  container.innerHTML = '';
+  SATELLITES.forEach((sat, si) => {
+    const state = satState[si];
+    const div = document.createElement('div');
+    div.className = 'sat-card';
+    div.id = 'sat-card-' + sat.id;
+    div.onclick = () => onSatClick(si);
+    div.innerHTML = `
+      <div class="sat-name" style="color:${sat.color}">${sat.id}</div>
+      <div>
+        <span class="sat-orbit-badge">${sat.orbit}</span>
+        <span style="font-size:9px;color:#99aabb;">${sat.cloudFree === true ? 'ALL-WEATHER' : sat.cloudFree === 'partial' ? 'PARTIAL' : 'OPTICAL'}</span>
+      </div>
+      <div class="sat-sensor">${sat.sensor}</div>
+      <div class="sat-status nominal" id="sat-status-${sat.id}">● NOMINAL</div>
+      <div class="sat-progress-bar" id="sat-pb-${sat.id}" style="width:0%"></div>
+      <div class="sat-duty-outer"><div class="sat-duty-fill" id="sat-duty-${sat.id}"></div></div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function updateSatCards() {
+  SATELLITES.forEach((sat, si) => {
+    const state = satState[si];
+    const card  = document.getElementById('sat-card-' + sat.id);
+    const statusEl = document.getElementById('sat-status-' + sat.id);
+    const pb    = document.getElementById('sat-pb-'    + sat.id);
+    const dutyEl= document.getElementById('sat-duty-'  + sat.id);
+    if (!card) return;
+
+    // Duty cycle bar
+    const dc = state.dutyCycle || 0;
+    if (dutyEl) {
+      dutyEl.style.width = dc + '%';
+      dutyEl.className = 'sat-duty-fill' + (dc > 80 ? ' critical' : dc > 50 ? ' warn' : '');
+    }
+
+    // Capacity constraint from duty cycle (regardless of cooldown)
+    const capacityConstrained = dc >= 100;
+
+    card.className = 'sat-card';
+    // SOL-WATCH dim when no space weather events active
+    if (sat.id === 'SOL-WATCH') {
+      const hasSpaceWeather = activeEvents.some(e => e.category === 'space_weather');
+      if (!hasSpaceWeather) card.classList.add('sol-inactive');
+    }
+    if (capacityConstrained) {
+      card.className = 'sat-card cooldown';
+      statusEl.className = 'sat-status cooldown-st';
+      statusEl.textContent = '■ CAPACITY CONSTRAINT';
+      if (pb) { pb.style.width = '100%'; pb.className = 'sat-progress-bar'; pb.style.background = '#ff4422'; }
+    } else if (state.status === 'NOMINAL') {
+      statusEl.className = 'sat-status nominal';
+      if (dc > 70)      statusEl.textContent = '▲ DUTY CYCLE ACTIVE';
+      else if (dc > 40) statusEl.textContent = `● CAPACITY ${Math.round(dc)}%`;
+      else              statusEl.textContent = '● NOMINAL';
+      if (pb) { pb.style.width = '0%'; pb.className = 'sat-progress-bar'; }
+    } else if (state.status === 'TASKING') {
+      card.className = 'sat-card tasking';
+      statusEl.className = 'sat-status tasking-st';
+      const remaining = Math.max(0, Math.ceil((state.taskDuration || 0) - (state.taskProgress || 0)));
+      statusEl.textContent = `◉ ACQUIRING ${remaining}s`;
+      const pct = state.taskDuration > 0 ? Math.min(100, (state.taskProgress / state.taskDuration) * 100) : 0;
+      if (pb) { pb.style.width = pct + '%'; pb.className = 'sat-progress-bar'; pb.style.background = '#ffaa00'; }
+    } else if (state.status === 'COOLDOWN') {
+      card.className = 'sat-card cooldown';
+      statusEl.className = 'sat-status cooldown-st';
+      const rem = Math.ceil(state.cooldown);
+      if (state.extendedBlackout) {
+        statusEl.textContent = `■ TASKING BLACKOUT ${rem}s`;
+      } else if (dc > 60) {
+        statusEl.textContent = `▲ DUTY CYCLE LIMIT ${rem}s`;
+      } else {
+        statusEl.textContent = `◉ DUTY CYCLE ACTIVE ${rem}s`;
+      }
+      const coolMax = SATELLITES[si].cooldownMax * (state.extendedBlackout ? 2 : 1);
+      const pct2 = Math.min(100, (1 - state.cooldown / coolMax) * 100);
+      if (pb) { pb.style.width = pct2 + '%'; pb.className = 'sat-progress-bar filling'; pb.style.background = ''; }
+    }
+  });
+}
+
+// ─── EVENT SPAWNING ───────────────────────────────────────────────────────────
+function spawnEvent() {
+  const maxEvents = gameTime < 60 ? 1 : gameTime < 180 ? 2 : gameTime < 360 ? 3 : 4;
+  if (activeEvents.length >= maxEvents) return;
+
+  const cloudProb = Math.min(0.6, 0.2 + (gameTime / (25 * 60)) * 0.4);
+  const rng = Math.random();
+  const isObs = rng < 0.2;
+  const isSpaceWeather = rng >= 0.2 && rng < 0.3; // ~10% chance
+  const keys = isObs ? OBS_EVENT_KEYS : isSpaceWeather ? SPACE_WEATHER_KEYS : CRISIS_EVENT_KEYS;
+  const key = keys[Math.floor(Math.random() * keys.length)];
+  const def = EVENT_TYPES[key];
+
+  const locArr = def.locations;
+  const [lon, lat, region] = locArr[Math.floor(Math.random() * locArr.length)];
+
+  // Add some jitter so same location events don't all pile up
+  // Clamp to safe bounds so markers stay fully within canvas (40px padding from edges)
+  const jLon = Math.max(-168, Math.min(168, lon + (Math.random() - 0.5) * 5));
+  const jLat = Math.max(-60, Math.min(65, lat + (Math.random() - 0.5) * 3));
+
+  const urgencyMax = def.urgency[0] + Math.random() * (def.urgency[1] - def.urgency[0]);
+
+  // Check actual cloud cells at event location, plus random density factor
+  const tempEv = { lon: jLon, lat: jLat };
+  const locationCloudy = isEventCloudy(tempEv);
+  const isCloudy = locationCloudy || (Math.random() < cloudProb * 0.5);
+  const isNight = isNightLon(jLon);
+
+  const newEv = {
+    id: nextEventId++,
+    type: key,
+    category: def.category,
+    title: def.title,
+    lon: jLon, lat: jLat,
+    region: region,
+    spawnTime: gameTime,
+    urgencyMax: urgencyMax,
+    cloudy: isCloudy,
+    nightTime: isNight,
+    status: 'ACTIVE',
+    seed: Math.random() * 1000,
+  };
+  activeEvents.push(newEv);
+
+  // Announce spawn with floating text (crisis events only)
+  if (def.category !== 'observation' && gameState === 'PLAYING') {
+    floatingTexts.push({
+      x: lonToX(jLon), y: latToY(jLat) - 18,
+      text: def.category === 'space_weather' ? '⚡ SPACE WEATHER ALERT' : def.category === 'short' ? '▲ INCOMING' : '● NEW EVENT',
+      color: def.category === 'space_weather' ? '#ffcc22' : def.category === 'short' ? '#ff6644' : '#ffaa00',
+      age: 0,
+    });
+  }
+
+  // Space weather side effects on spawn
+  if (key === 'SATELLITE_DRAG' && !leoDragActive) {
+    leoDragActive = true;
+    leoDragTimer = 90; // 90s of elevated drag
+  }
+}
+
+// ─── EVENT CLICK ─────────────────────────────────────────────────────────────
+function setupEventCanvas() {
+  const canvas = document.getElementById('event-canvas');
+  canvas.addEventListener('click', (e) => {
+    if (gameState === 'INTRO' || gameState === 'GAMEOVER') return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = MAP_W / rect.width;
+    const scaleY = MAP_H / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+    let best = null, bestDist = 45;
+    for (const ev of activeEvents) {
+      const ex = lonToX(ev.lon), ey = latToY(ev.lat);
+      const dist = Math.hypot(mx - ex, my - ey);
+      if (dist < bestDist) { bestDist = dist; best = ev; }
+    }
+    if (best) {
+      if (gameState === 'RESOLVING' && resolveEvent && best.id !== resolveEvent.id) {
+        // Cancel current resolution only when switching to a different event
+        // DATA_READY status is preserved on the original event
+        gameState = 'PLAYING';
+        resolveEvent = null;
+        hideActionButtons();
+      }
+      selectedEvent = best;
+      // If clicking a DATA_READY event, enter RESOLVING state
+      if (best.status === 'DATA_READY') {
+        resolveEvent = best;
+        resolveMatch = best.taskingMatch || 'wrong';
+        gameState = 'RESOLVING';
+      }
+      updateDataPanel();
+    }
+  });
+}
+
+// ─── SAT CLICK ────────────────────────────────────────────────────────────────
+function onSatClick(si) {
+  if (gameState === 'INTRO' || gameState === 'GAMEOVER') return;
+  if (!selectedEvent) return;
+  const state = satState[si];
+  // Block if satellite unavailable
+  if (state.status !== 'NOMINAL') return;
+  if ((state.dutyCycle || 0) >= 100) return;
+  // Don't allow double-tasking the same event
+  if (pendingTaskings.some(t => t.eventId === selectedEvent.id)) return;
+  // Don't re-task an event already DATA_READY
+  if (selectedEvent.status === 'DATA_READY') return;
+
+  const sat = SATELLITES[si];
+  const def = EVENT_TYPES[selectedEvent.type];
+
+  // Determine match quality
+  let match = 'wrong';
+  if (def.primary.includes(sat.id))    match = 'optimal';
+  else if (def.acceptable.includes(sat.id)) match = 'acceptable';
+
+  // FOREST-WATCH dual payload
+  let forestWatchSAR = false;
+  if (sat.id === 'FOREST-WATCH') {
+    forestWatchSAR = selectedEvent.cloudy || selectedEvent.nightTime || forestWatchSARForced;
+    if (forestWatchSAR) {
+      if (match === 'blocked') match = 'optimal';
+    }
+  }
+
+  // Cloud blocking for non-cloud-free optical sensors
+  if (selectedEvent.cloudy && sat.cloudFree === false && sat.id !== 'FOREST-WATCH') {
+    match = 'blocked';
+  }
+
+  // Night blocking
+  if (selectedEvent.nightTime && sat.nightFree === false && sat.id !== 'FOREST-WATCH') {
+    match = 'blocked';
+  }
+  // Partial night degradation
+  if (selectedEvent.nightTime && sat.nightFree === 'partial' && match === 'optimal') {
+    match = 'acceptable';
+  }
+
+  let delay = sat.orbit === 'GEO' || sat.orbit === 'L1' ? 2 : Math.max(2, (5 + Math.random() * 10) - upgrades.acquisitionSpeed * 3);
+  if (leoDragActive && sat.orbit === 'LEO') delay *= 1.5;
+
+  // Update satellite state
+  state.status = 'TASKING';
+  state.taskProgress = 0;
+  state.taskDuration = delay;
+  state.dutyCycle = Math.min(100, (state.dutyCycle || 0) + 22);
+
+  // Update event status
+  selectedEvent.status = 'ACQUIRING';
+
+  // Push to background taskings
+  pendingTaskings.push({
+    satIndex: si, satId: sat.id,
+    eventId: selectedEvent.id, match, elapsed: 0, duration: delay, forestWatchSAR,
+  });
+
+  // Show tasking overlay (non-blocking)
+  document.getElementById('tasking-sat-name').textContent    = sat.id;
+  document.getElementById('tasking-mission-type').textContent = selectedEvent.title;
+  document.getElementById('tasking-region').textContent      = selectedEvent.region;
+  document.getElementById('tasking-progress').textContent    = `ACQUIRING — ${Math.ceil(delay)}s`;
+  document.getElementById('tasking-overlay').className = 'visible';
+
+  forestWatchSARForced = false; // reset override after use
+  updateDataPanel();
+  updateSatCards();
+}
+
+// ─── DATA PANEL ──────────────────────────────────────────────────────────────
+function updateDataPanel() {
+  const placeholder = document.getElementById('event-info-placeholder');
+  const content = document.getElementById('event-info-content');
+  const productCanvas = document.getElementById('product-canvas');
+  const metricsDiv = document.getElementById('ei-metrics');
+  const instructionDiv = document.getElementById('ei-instruction');
+  const actionSection = document.getElementById('action-section');
+  const actionButtons = document.getElementById('action-buttons');
+
+  if (!selectedEvent) {
+    placeholder.style.display = 'flex';
+    content.style.display = 'none';
+    hideActionButtons();
+    return;
+  }
+
+  placeholder.style.display = 'none';
+  content.style.display = 'block';
+
+  const ev = selectedEvent;
+  const def = EVENT_TYPES[ev.type];
+
+  document.getElementById('ei-title').textContent = ev.title;
+  document.getElementById('ei-region').textContent = `${ev.region} — ${ev.lon.toFixed(1)}°, ${ev.lat.toFixed(1)}°`;
+
+  const catBadge = document.getElementById('ei-cat-badge');
+  catBadge.className = 'cat-badge ' + ev.category;
+  const catLabels = { short: 'URGENT', medium: 'ELEVATED', long: 'MONITOR', observation: 'OBSERVATION', space_weather: 'SPACE WEATHER' };
+  catBadge.textContent = catLabels[ev.category] || ev.category.toUpperCase();
+
+  // Satellite recommendations
+  const recsDiv = document.getElementById('ei-sat-recs');
+  recsDiv.innerHTML = '';
+  SATELLITES.forEach(sat => {
+    const isPrimary = def.primary.includes(sat.id);
+    const isAcceptable = !isPrimary && def.acceptable.includes(sat.id);
+    if (!isPrimary && !isAcceptable) return;
+    const item = document.createElement('div');
+    item.className = 'sat-rec-item';
+    const icon = isPrimary ? '✓' : '~';
+    const iconClass = isPrimary ? 'primary' : 'acceptable';
+    item.innerHTML = `<span class="match-icon ${iconClass}">${icon}</span><span style="color:${SATELLITES.find(s=>s.id===sat.id).color};font-size:10px">${sat.id}</span><span style="color:#99aabb;font-size:9px;margin-left:4px">${sat.sensor}</span>`;
+    recsDiv.appendChild(item);
+  });
+
+  // Cloud / night warning
+  const cloudWarnDiv = document.getElementById('ei-cloud-warn');
+  cloudWarnDiv.innerHTML = '';
+  if (ev.nightTime && ev.cloudy) {
+    cloudWarnDiv.innerHTML = `<div class="cloud-warning warn">&#9681; NIGHT + CLOUD — SAR / THERMAL ONLY</div>`;
+  } else if (ev.nightTime) {
+    cloudWarnDiv.innerHTML = `<div class="cloud-warning warn">&#9681; NIGHT PASS — OPTICAL SENSORS OFFLINE &middot; SAR/THERMAL RECOMMENDED</div>`;
+  } else if (ev.cloudy) {
+    cloudWarnDiv.innerHTML = `<div class="cloud-warning warn">&#9888; CLOUD COVER DETECTED — OPTICAL &amp; LiDAR SENSORS DEGRADED<br><span style="color:#ccaa55;font-size:10px">Use SAR (FLOOD-EYE) for full cloud-penetrating data quality</span></div>`;
+  } else {
+    cloudWarnDiv.innerHTML = `<div class="cloud-warning ok">&#10003; CLEAR SKIES — ALL SENSORS NOMINAL</div>`;
+  }
+
+  // Hide fw-mode-toggle by default
+  const fwModeToggle = document.getElementById('fw-mode-toggle');
+  if (fwModeToggle) fwModeToggle.style.display = 'none';
+
+  if (gameState === 'RESOLVING' && resolveEvent && resolveEvent.id === ev.id) {
+    instructionDiv.style.display = 'none';
+    productCanvas.style.display = 'block';
+    metricsDiv.style.display = 'block';
+
+    // DATA-READY badge
+    const titleEl = document.getElementById('ei-title');
+    titleEl.innerHTML = (ev.status === 'DATA_READY' ? '<span class="data-ready-badge">&#9654; DATA READY</span> ' : '') + ev.title;
+
+    // FOREST-WATCH mode display
+    if (ev.forestWatchSAR !== undefined && ev.taskingSatId === 'FOREST-WATCH') {
+      const modeEl = document.getElementById('fw-active-mode');
+      if (modeEl) {
+        modeEl.style.display = 'block';
+        modeEl.textContent = `FOREST-WATCH MODE: ${ev.forestWatchSAR ? 'SAR (CLOUD PENETRATION)' : 'OPTICAL (HIGH RES)'}`;
+      }
+    } else {
+      const modeEl = document.getElementById('fw-active-mode');
+      if (modeEl) modeEl.style.display = 'none';
+    }
+
+    // Draw data product
+    if (resolveMatch !== 'blocked' && resolveMatch !== 'wrong') {
+      drawDataProduct(def.dataProduct, ev.seed);
+    } else {
+      // No data / blocked
+      const ctx = productCanvas.getContext('2d');
+      ctx.fillStyle = '#050a0f';
+      ctx.fillRect(0, 0, 320, 240);
+      ctx.fillStyle = '#330a0a';
+      ctx.fillRect(0, 0, 320, 240);
+      ctx.fillStyle = '#ff3333';
+      ctx.font = 'bold 18px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText(resolveMatch === 'blocked' ? 'CLOUD BLOCKED' : 'NO DATA', 160, 115);
+      ctx.font = '11px Courier New';
+      ctx.fillStyle = '#aa3333';
+      ctx.fillText(resolveMatch === 'blocked' ? 'OPTICAL SENSOR OBSTRUCTED' : 'WRONG SENSOR TYPE', 160, 135);
+      ctx.textAlign = 'left';
+    }
+
+    // Metrics
+    const elapsed = gameTime - ev.spawnTime;
+    const urgFrac = elapsed / ev.urgencyMax;
+    let confidence = resolveMatch === 'optimal' ? 0.75 + Math.random() * 0.2 : resolveMatch === 'acceptable' ? 0.45 + Math.random() * 0.25 : 0.05;
+    if (ev.cloudy && resolveMatch !== 'blocked') confidence *= 0.5;
+
+    const extentVals = ['12,400 km²', '8,750 km²', '23,100 km²', '4,200 km²', '31,800 km²'];
+    const intensityVals = ['HIGH (FRP: 2,140 MW)', 'MODERATE', 'EXTREME', 'ELEVATED', 'CRITICAL'];
+    const extent = resolveMatch === 'wrong' || resolveMatch === 'blocked' ? '—' : extentVals[Math.floor(ev.seed % 5)];
+    const intensity = resolveMatch === 'wrong' || resolveMatch === 'blocked' ? '—' : intensityVals[Math.floor(ev.seed * 1.7 % 5)];
+    const confPct = Math.round(confidence * 100);
+
+    document.getElementById('m-extent').textContent = extent;
+    document.getElementById('m-intensity').textContent = intensity;
+    document.getElementById('m-confidence').textContent = confPct + '%';
+
+    const confFill = document.getElementById('conf-fill');
+    confFill.style.width = confPct + '%';
+    confFill.style.background = confPct > 70 ? '#00ff88' : confPct > 40 ? '#ffaa00' : '#ff3333';
+
+    const matchResult = document.getElementById('match-result');
+    if (resolveMatch === 'optimal') { matchResult.className = 'match-result optimal'; matchResult.textContent = 'SATELLITE MATCH: OPTIMAL'; }
+    else if (resolveMatch === 'acceptable') { matchResult.className = 'match-result degraded'; matchResult.textContent = 'SATELLITE MATCH: DEGRADED'; }
+    else if (resolveMatch === 'blocked') { matchResult.className = 'match-result blocked'; matchResult.textContent = 'SATELLITE MATCH: CLOUD BLOCKED'; }
+    else { matchResult.className = 'match-result blocked'; matchResult.textContent = 'SATELLITE MATCH: WRONG SENSOR'; }
+
+    // Flavour text for observation events
+    const flavourDiv = document.getElementById('flavour-text');
+    if (def.flavour && resolveMatch !== 'wrong' && resolveMatch !== 'blocked') {
+      flavourDiv.style.display = 'block';
+      flavourDiv.textContent = def.flavour;
+    } else {
+      flavourDiv.style.display = 'none';
+    }
+
+    // Cloud indicator override when data is received
+    if (ev.cloudy && resolveMatch === 'acceptable') {
+      cloudWarnDiv.innerHTML = `<div class="cloud-warning warn">&#9888; CLOUD COVER DETECTED — OPTICAL SENSOR DEGRADED<br><span style="color:#ccaa55;">DATA QUALITY REDUCED — PARTIAL RETURN</span></div>`;
+    } else if (ev.cloudy && resolveMatch === 'optimal') {
+      cloudWarnDiv.innerHTML = `<div class="cloud-warning ok">&#10003; SAR / ALL-WEATHER SENSOR — CLOUD PENETRATION NOMINAL</div>`;
+    }
+
+    // Mitigation timeout countdown
+    const urgElapsed2  = gameTime - ev.spawnTime;
+    const timeRemain   = Math.max(0, Math.ceil(ev.urgencyMax - urgElapsed2));
+    const timeoutEl    = document.getElementById('ei-mitigation-timeout');
+    if (timeoutEl) {
+      timeoutEl.style.display = 'block';
+      timeoutEl.textContent = `DECISION WINDOW: ${timeRemain}s`;
+      timeoutEl.style.color = timeRemain < 20 ? '#ff3333' : timeRemain < 45 ? '#ffaa00' : '#8899aa';
+    }
+
+    // Action buttons — only shown for valid data returns
+    actionButtons.innerHTML = '';
+    if (resolveMatch === 'wrong') {
+      // Wrong satellite: no data product, no valid actions available
+      const dismissBtn = document.createElement('button');
+      dismissBtn.className = 'action-btn';
+      dismissBtn.style.borderColor = '#ff3333';
+      dismissBtn.style.color = '#ff3333';
+      dismissBtn.innerHTML = 'DISMISS — WRONG SENSOR &nbsp;<span class="risk-badge HIGH">NO DATA</span>';
+      dismissBtn.onclick = () => onMitigationClick({ id: 'wrong_dismiss', label: 'Dismiss', risk: 'HIGH', points: 0 }, ev);
+      actionButtons.appendChild(dismissBtn);
+    } else {
+      def.mitigations.forEach(m => {
+        const btn = document.createElement('button');
+        btn.className = 'action-btn';
+        const cost = m.cost || m.risk;
+        let costLine = '';
+        if (cost === 'HIGH') {
+          costLine = `<span class="cost-indicator high">\u25b2 HIGH IMPACT \u2014 duty cycle \xd72 + follow-up tasking required</span>`;
+        } else if (cost === 'MEDIUM') {
+          costLine = `<span class="cost-indicator medium">~ MEDIUM \u2014 residual monitoring required</span>`;
+        } else {
+          costLine = `<span class="cost-indicator low">\u2713 LOW IMPACT \u2014 partial resolution only</span>`;
+        }
+        btn.innerHTML = `${m.label} <span class="risk-badge ${m.risk}">${m.risk}</span>${costLine}`;
+        btn.onclick = () => onMitigationClick(m, ev);
+        actionButtons.appendChild(btn);
+      });
+    }
+  } else {
+    // Pre-tasking state
+    document.getElementById('ei-title').textContent = ev.title;
+    const timeoutEl2 = document.getElementById('ei-mitigation-timeout');
+    if (timeoutEl2) timeoutEl2.style.display = 'none';
+    const modeEl2 = document.getElementById('fw-active-mode');
+    if (modeEl2) modeEl2.style.display = 'none';
+
+    // Show ACQUIRING status if this event is being acquired
+    const acquiringTask = pendingTaskings.find(t => t.eventId === ev.id);
+    if (acquiringTask) {
+      instructionDiv.style.display = 'block';
+      const aSat = SATELLITES[acquiringTask.satIndex];
+      instructionDiv.innerHTML = `<span style="color:var(--color-amber)">◉ TASKING ${aSat.id}</span><br>
+        Acquiring overpass window — sensor lock in progress.<br>
+        <span style="color:#aabbcc;font-size:10px">Orbit: ${aSat.orbit} &nbsp;|&nbsp; Sensor: ${aSat.sensor}</span>`;
+      productCanvas.style.display = 'none';
+      metricsDiv.style.display = 'none';
+      hideActionButtons();
+      return;
+    }
+
+    instructionDiv.style.display = 'block';
+    productCanvas.style.display = 'none';
+    metricsDiv.style.display = 'none';
+    hideActionButtons();
+
+    // FOREST-WATCH sensor mode toggle
+    const fwSatIdx = SATELLITES.findIndex(s => s.id === 'FOREST-WATCH');
+    const fwSatState = fwSatIdx >= 0 ? satState[fwSatIdx] : null;
+    const fwDef = EVENT_TYPES[ev.type];
+    if (fwDef && fwSatIdx >= 0 && (fwDef.primary.includes('FOREST-WATCH') || fwDef.acceptable.includes('FOREST-WATCH'))
+        && fwSatState && fwSatState.status === 'NOMINAL') {
+      if (fwModeToggle) {
+        fwModeToggle.style.display = 'block';
+        fwModeToggle.innerHTML = `
+          <div class="fw-toggle-row">
+            <span>FOREST-WATCH SENSOR:</span>
+            <button class="fw-toggle-btn ${!forestWatchSARForced ? 'active' : ''}" onclick="window._fwSetMode(false)">AUTO</button>
+            <button class="fw-toggle-btn ${forestWatchSARForced  ? 'active' : ''}" onclick="window._fwSetMode(true)">FORCE SAR</button>
+          </div>
+          <div style="font-size:9px;color:#aabbcc;margin-bottom:4px">
+            ${ev.cloudy ? 'Cloud detected — AUTO will select SAR' : 'Clear skies — AUTO will select Optical'}
+          </div>
+        `;
+      }
+    }
+  }
+}
+
+function hideActionButtons() {
+  document.getElementById('action-buttons').innerHTML = '';
+}
+
+// ─── MITIGATION ───────────────────────────────────────────────────────────────
+function onMitigationClick(mitigation, ev) {
+  if (gameState !== 'RESOLVING') return;
+
+  const def = EVENT_TYPES[ev.type];
+  const elapsed = gameTime - ev.spawnTime;
+  const urgFrac = elapsed / ev.urgencyMax;
+
+  // Wrong satellite: no points, streak reset, small penalty to reinforce correct matching
+  if (resolveMatch === 'wrong') {
+    streak = 0;
+    const penalty = ev.category === 'observation' ? 0 : -50;
+    score += penalty;
+    eventsResolved++;
+    const mm2 = String(Math.floor(gameTime / 60)).padStart(2, '0');
+    const ss2 = String(Math.floor(gameTime % 60)).padStart(2, '0');
+    addLogEntry(`T+${mm2}:${ss2}`, 'WRONG SAT: ' + ev.title.substring(0, 14), penalty, false);
+    if (penalty !== 0) {
+      const ex2 = lonToX(ev.lon), ey2 = latToY(ev.lat);
+      floatingTexts.push({ x: ex2, y: ey2, text: `${penalty}`, color: '#ff3333', age: 0 });
+    }
+    activeEvents = activeEvents.filter(e => e.id !== ev.id);
+    selectedEvent = null;
+    resolveEvent = null;
+    gameState = 'PLAYING';
+    updateHUD();
+    updateDataPanel();
+    hideActionButtons();
+    return;
+  }
+
+  let basePoints = 0;
+  if (resolveMatch === 'optimal') basePoints = 200;
+  else if (resolveMatch === 'acceptable') basePoints = 100;
+  // 'blocked' stays at 0
+
+  // Time bonus (only for valid satellite returns)
+  let timeBonus = 0;
+  if (resolveMatch !== 'blocked') {
+    if (urgFrac < 0.25) timeBonus = 100;
+    else if (urgFrac < 0.5) timeBonus = 60;
+    else if (urgFrac < 0.75) timeBonus = 20;
+  }
+
+  // Mitigation roll — degraded/blocked yields reduced success chance
+  const successChance = resolveMatch === 'blocked' ? 0.25 : 0.7;
+  const success = Math.random() < successChance;
+  const mitigationPts = (resolveMatch === 'blocked') ? 0 : (success ? mitigation.points : Math.floor(mitigation.points * 0.3));
+
+  // Observation flat bonus
+  const isObs = ev.category === 'observation';
+  let total;
+  const mitigationCost = mitigation.cost || mitigation.risk || 'LOW';
+  if (isObs) {
+    total = 75;
+  } else if (mitigationCost === 'LOW') {
+    // LOW cost: partial resolution — score at 60%
+    total = Math.floor((basePoints + timeBonus + mitigationPts) * 0.6);
+  } else {
+    total = basePoints + timeBonus + mitigationPts;
+  }
+
+  // Streak multiplier
+  if (resolveMatch !== 'wrong' && resolveMatch !== 'blocked') {
+    streak++;
+    if (streak > maxStreak) maxStreak = streak;
+  } else {
+    streak = 0;
+  }
+  const streakMult = streak >= 7 ? 2.5 : streak >= 5 ? 2.0 : streak >= 3 ? 1.5 : 1.0;
+  total = Math.floor(total * streakMult);
+
+  // Night SAR/thermal advantage bonus
+  if (resolveEvent.nightTime && ['FLOOD-EYE','FIRE-WATCH'].includes(resolveEvent.taskingSatId)) {
+    const nightBonus = 30;
+    total += nightBonus;
+    floatingTexts.push({ x: MAP_W/2, y: MAP_H/2, text: '🌙 NIGHT PASS +30', color: '#aaddff', age: 0 });
+  }
+
+  score += total;
+  eventsResolved++;
+
+  // Award credits
+  const creditEarned = Math.max(5, Math.floor(total * 0.35));
+  credits += creditEarned;
+
+  // Log entry
+  const mm = String(Math.floor(gameTime / 60)).padStart(2, '0');
+  const ss = String(Math.floor(gameTime % 60)).padStart(2, '0');
+  addLogEntry(`T+${mm}:${ss}`, ev.title.substring(0, 20), total, true);
+
+  // Floating text
+  const ex = lonToX(ev.lon), ey = latToY(ev.lat);
+  floatingTexts.push({ x: ex, y: ey, text: `+${total}`, color: '#00ff88', age: 0 });
+  floatingTexts.push({ x: ex + 8, y: ey + 14, text: `+${creditEarned}cr`, color: '#ffcc44', age: 0 });
+
+  // Apply cost-tier effects
+  if (!isObs && resolveMatch !== 'blocked' && resolveMatch !== 'wrong') {
+    const satIdx = ev.taskingSatIndex;
+    if (mitigationCost === 'HIGH') {
+      if (satIdx !== undefined && satIdx >= 0) {
+        satState[satIdx].dutyCycle = Math.min(100, (satState[satIdx].dutyCycle || 0) + 40);
+        satState[satIdx].cooldown  = Math.max(satState[satIdx].cooldown, SATELLITES[satIdx].cooldownMax * 2.0);
+        satState[satIdx].extendedBlackout = true;
+      }
+      scheduledFollowups.push({ eventType: getMitigationFollowup(ev.type), lon: ev.lon, lat: ev.lat, region: ev.region, fireAt: gameTime + 30 + Math.random() * 30 });
+      floatingTexts.push({ x: ex, y: ey - 15, text: '\u26a0 FOLLOW-UP REQUIRED', color: '#ff6644', age: 0 });
+    } else if (mitigationCost === 'MEDIUM') {
+      if (satIdx !== undefined && satIdx >= 0) {
+        satState[satIdx].dutyCycle = Math.min(100, (satState[satIdx].dutyCycle || 0) + 20);
+      }
+      residualDrains.push({ amount: 3, rate: 3 });
+      scheduledFollowups.push({ eventType: getMitigationFollowup(ev.type), lon: ev.lon, lat: ev.lat, region: ev.region, fireAt: gameTime + 60 + Math.random() * 60 });
+      floatingTexts.push({ x: ex, y: ey - 15, text: '~ RESIDUAL RISK', color: '#ffcc00', age: 0 });
+    } else {
+      // LOW cost: partial resolution floating text
+      floatingTexts.push({ x: ex, y: ey - 15, text: '\u2713 PARTIAL RESOLUTION', color: '#44cc88', age: 0 });
+    }
+  }
+
+  // Apply mitigation consequences
+  const consMap = MITIGATION_CONSEQUENCES[ev.type];
+  if (consMap && consMap[mitigation.id]) {
+    const c = consMap[mitigation.id];
+    const satIdx = ev.taskingSatIndex;
+    if (c.type === 'extended_blackout' && satIdx !== undefined && satIdx >= 0) {
+      satState[satIdx].cooldown    = Math.max(satState[satIdx].cooldown, SATELLITES[satIdx].cooldownMax * c.multiplier);
+      satState[satIdx].extendedBlackout = true;
+      const satName = SATELLITES[satIdx].id;
+      addLogEntry(`T+${mm}:${ss}`, `BLACKOUT: ${satName}`, 0, false);
+      floatingTexts.push({ x: ex + 20, y: ey + 20, text: `BLACKOUT`, color: '#ff6644', age: 0 });
+    } else if (c.type === 'residual') {
+      score += c.penalty;
+      floatingTexts.push({ x: ex, y: ey + 15, text: `${c.penalty} residual`, color: '#ff8844', age: 0 });
+      addLogEntry(`T+${mm}:${ss}`, 'RESIDUAL RISK', c.penalty, false);
+    } else if (c.type === 'followup') {
+      scheduledFollowups.push({ eventType: ev.type, lon: ev.lon, lat: ev.lat, region: ev.region, fireAt: gameTime + 15 + Math.random() * 20 });
+      addLogEntry(`T+${mm}:${ss}`, 'FOLLOW-UP QUEUED', 0, true);
+      floatingTexts.push({ x: ex, y: ey + 15, text: `+FOLLOW-UP`, color: '#ffcc44', age: 0 });
+    }
+  }
+
+  // Remove event
+  activeEvents = activeEvents.filter(e => e.id !== ev.id);
+  selectedEvent = null;
+  resolveEvent = null;
+  gameState = 'PLAYING';
+
+  updateHUD();
+  updateDataPanel();
+  hideActionButtons();
+}
+
+// ─── LOG ──────────────────────────────────────────────────────────────────────
+function addLogEntry(time, type, delta, positive) {
+  eventLog.unshift({ time, type, delta, positive });
+  if (eventLog.length > 20) eventLog.pop();
+  renderLog();
+}
+
+function renderLog() {
+  const logEl = document.getElementById('event-log');
+  logEl.innerHTML = eventLog.slice(0, 8).map(e => `
+    <div class="log-entry">
+      <span class="log-time">${e.time}</span>
+      <span class="log-type">${e.type}</span>
+      <span class="log-score ${e.positive ? 'positive' : 'negative'}">${e.positive ? '+' : ''}${e.delta}</span>
+    </div>
+  `).join('');
+}
+
+// ─── HUD UPDATE ───────────────────────────────────────────────────────────────
+function updateHUD() {
+  const remaining = Math.max(0, gameDuration - gameTime);
+  const rm = String(Math.floor(remaining / 60)).padStart(2, '0');
+  const rs = String(Math.floor(remaining % 60)).padStart(2, '0');
+  const hudCenter = document.getElementById('hud-center');
+  hudCenter.textContent = `${rm}:${rs} REMAINING`;
+  const frac = remaining / gameDuration;
+  hudCenter.className = frac < 0.15 ? 'critical' : frac < 0.30 ? 'warn' : '';
+  document.getElementById('hud-score').textContent = String(Math.round(score)).padStart(5, '0');
+  const streakMult = streak >= 7 ? '×2.5' : streak >= 5 ? '×2.0' : streak >= 3 ? '×1.5' : '×1';
+  document.getElementById('hud-streak').textContent = streakMult;
+  document.getElementById('hud-events').textContent = eventsResolved;
+  const crisisCount = activeEvents.filter(e => e.category !== 'observation').length;
+  const warnEl = document.getElementById('hud-active-warn');
+  if (warnEl) {
+    if (crisisCount >= 2) {
+      warnEl.style.display = 'inline';
+      document.getElementById('hud-active-count').textContent = crisisCount;
+    } else {
+      warnEl.style.display = 'none';
+    }
+  }
+
+  // Credits display
+  const credEl = document.getElementById('credits-display');
+  if (credEl) credEl.textContent = credits + ' CR';
+  const hudCredEl = document.getElementById('hud-credits');
+  if (hudCredEl) hudCredEl.textContent = credits;
+
+  // Day/Night phase indicator
+  const phaseEl = document.getElementById('hud-phase');
+  if (phaseEl) {
+    if (isNightLon(0)) {
+      phaseEl.textContent = '◑ NIGHT';
+      phaseEl.style.color = '#8899cc';
+    } else {
+      phaseEl.textContent = '☀ DAY';
+      phaseEl.style.color = '#ffdd88';
+    }
+  }
+
+  // Space weather warning bar
+  const swBar = document.getElementById('space-weather-bar');
+  const warnings = [];
+  if (cmeActive) warnings.push(`■ CME BLACKOUT — LEO CONSTELLATION IMPACTED — ${Math.ceil(cmeTimer)}s REMAINING`);
+  if (leoDragActive) warnings.push(`⚡ LEO DRAG ACTIVE — ACQUISITION DELAYS ELEVATED — ${Math.ceil(leoDragTimer)}s REMAINING`);
+  if (warnings.length > 0) {
+    swBar.textContent = warnings.join('   //   ');
+    swBar.style.display = 'block';
+  } else {
+    swBar.style.display = 'none';
+  }
+}
+
+// ─── ESCALATION ──────────────────────────────────────────────────────────────
+function checkEscalation() {
+  const toRemove = [];
+  for (const ev of activeEvents) {
+    const elapsed = gameTime - ev.spawnTime;
+
+    // Escalate if urgency exceeded (including DATA_READY events that player ignored)
+    if (elapsed >= ev.urgencyMax && ev.status !== 'ACQUIRING') {
+      toRemove.push(ev);
+      eventsFailed++;
+      // CME unresolved → blast all LEO satellites into extended cooldown
+      if (ev.type === 'CME' && !cmeActive) {
+        cmeActive = true;
+        cmeTimer = 40;
+        satState.forEach((st, si) => {
+          if (SATELLITES[si].orbit === 'LEO') {
+            st.status = 'COOLDOWN';
+            st.cooldown = 35 + Math.random() * 15;
+            st.extendedBlackout = true;
+          }
+        });
+      }
+      const penalty = ev.category === 'observation' ? 0 : ev.category === 'space_weather' ? -180 : (ev.category === 'short' ? -200 : ev.category === 'medium' ? -150 : -100);
+      score += penalty;
+      if (penalty < 0) {
+        const ex = lonToX(ev.lon), ey = latToY(ev.lat);
+        floatingTexts.push({ x: ex, y: ey, text: `${penalty}`, color: '#ff3333', age: 0 });
+        const mm = String(Math.floor(gameTime / 60)).padStart(2, '0');
+        const ss = String(Math.floor(gameTime % 60)).padStart(2, '0');
+        addLogEntry(`T+${mm}:${ss}`, 'ESCALATED: ' + ev.title.substring(0, 15), penalty, false);
+      }
+      streak = 0;
+    }
+
+    // Cancel acquiring events that expired mid-acquisition
+    if (elapsed >= ev.urgencyMax * 1.1 && ev.status === 'ACQUIRING') {
+      // Remove from pending taskings too
+      const ti = pendingTaskings.findIndex(t => t.eventId === ev.id);
+      if (ti >= 0) {
+        satState[pendingTaskings[ti].satIndex].status = 'COOLDOWN';
+        satState[pendingTaskings[ti].satIndex].cooldown = SATELLITES[pendingTaskings[ti].satIndex].cooldownMax * 0.5;
+        pendingTaskings.splice(ti, 1);
+      }
+      toRemove.push(ev);
+      eventsFailed++;
+      const penalty = ev.category === 'observation' ? 0 : ev.category === 'space_weather' ? -180 : (ev.category === 'short' ? -200 : ev.category === 'medium' ? -150 : -100);
+      score += penalty;
+      if (penalty < 0) {
+        const ex = lonToX(ev.lon), ey = latToY(ev.lat);
+        floatingTexts.push({ x: ex, y: ey, text: `${penalty}`, color: '#ff3333', age: 0 });
+        const mm = String(Math.floor(gameTime / 60)).padStart(2, '0');
+        const ss = String(Math.floor(gameTime % 60)).padStart(2, '0');
+        addLogEntry(`T+${mm}:${ss}`, 'EXPIRED: ' + ev.title.substring(0, 16), penalty, false);
+      }
+      streak = 0;
+    }
+  }
+  for (const ev of toRemove) {
+    if (selectedEvent && selectedEvent.id === ev.id) {
+      selectedEvent = null;
+      if (gameState === 'RESOLVING') {
+        gameState = 'PLAYING';
+        resolveEvent = null;
+        hideActionButtons();
+      }
+      updateDataPanel();
+    }
+    activeEvents = activeEvents.filter(e => e.id !== ev.id);
+  }
+}
+
+// ─── GAME OVER ────────────────────────────────────────────────────────────────
+function triggerGameOver() {
+  gameState = 'GAMEOVER';
+  const modal = document.getElementById('modal-overlay');
+  const introBox = document.getElementById('intro-box');
+  const goBox = document.getElementById('gameover-box');
+  introBox.style.display = 'none';
+  goBox.style.display = 'block';
+  modal.className = '';
+
+  const mm = String(Math.floor(gameTime / 60)).padStart(2, '0');
+  const ss = String(Math.floor(gameTime % 60)).padStart(2, '0');
+
+  const accuracy = eventsResolved + eventsFailed > 0 ? Math.round(100 * eventsResolved / (eventsResolved + eventsFailed)) : 0;
+  const timedOut = gameTime >= gameDuration;
+  const statsEl = document.getElementById('go-stats');
+  statsEl.innerHTML = `
+    <div class="go-stat"><span class="go-stat-label">FINAL SCORE</span><span class="go-stat-value highlight">${Math.round(score)}</span></div>
+    <div class="go-stat"><span class="go-stat-label">MAX STREAK</span><span class="go-stat-value">×${maxStreak}</span></div>
+    <div class="go-stat"><span class="go-stat-label">EVENTS RESOLVED</span><span class="go-stat-value">${eventsResolved}</span></div>
+    <div class="go-stat"><span class="go-stat-label">EVENTS FAILED</span><span class="go-stat-value">${eventsFailed}</span></div>
+    <div class="go-stat"><span class="go-stat-label">ACCURACY</span><span class="go-stat-value">${accuracy}%</span></div>
+    <div class="go-stat"><span class="go-stat-label">MISSION STATUS</span><span class="go-stat-value" style="color:${timedOut ? 'var(--color-accent)' : 'var(--color-alert)'}">${timedOut ? 'MISSION COMPLETE' : 'MISSION FAILED'}</span></div>
+  `;
+}
+
+// ─── RESET ────────────────────────────────────────────────────────────────────
+function resetGame() {
+  gameTime = 0;
+  lastTimestamp = 0;
+  score = 0;
+  streak = 0;
+  eventsResolved = 0;
+  eventsFailed = 0;
+  maxStreak = 0;
+  activeEvents = [];
+  nextEventId = 1;
+  selectedEvent = null;
+  taskingSat = null;
+  taskingStart = 0;
+  taskingDuration = 0;
+  resolveEvent = null;
+  resolveMatch = 'none';
+  eventLog = [];
+  floatingTexts = [];
+  lastSpawnTime = -99;
+  cloudFrame = 0;
+
+  satState = SATELLITES.map(s => ({
+    id: s.id, status: 'NOMINAL', cooldown: 0, taskProgress: 0, taskDuration: 0,
+    dutyCycle: 0, extendedBlackout: false,
+  }));
+
+  pendingTaskings = [];
+  forestWatchSARForced = false;
+  scheduledFollowups = [];
+  residualDrains = [];
+  leoDragActive = false;
+  leoDragTimer  = 0;
+  cmeActive     = false;
+  cmeTimer      = 0;
+  credits = 0;
+  upgrades = { rechargeBoost: 0, acquisitionSpeed: 0, dutyRecovery: 0, emergencyRecharge: 0 };
+  sunLon = -90;
+
+  updateHUD();
+  renderLog();
+  buildSatCards();
+  updateDataPanel();
+  hideActionButtons();
+  buildUpgradesPanel();
+
+  document.getElementById('tasking-overlay').className = '';
+}
+
+// ─── UPGRADES ────────────────────────────────────────────────────────────────
+function buildUpgradesPanel() {
+  const body = document.getElementById('upgrades-body');
+  if (!body) return;
+  body.innerHTML = '';
+  UPGRADE_DEFS.forEach(def => {
+    const currentLevel = upgrades[def.id] || 0;
+    const maxLevel = def.levels.length;
+    const isMaxed = def.repeatable ? false : currentLevel >= maxLevel;
+    const nextLevel = def.repeatable ? 0 : currentLevel; // index into levels
+    const levelDef = def.levels[Math.min(nextLevel, maxLevel - 1)];
+    const canAfford = credits >= levelDef.cost;
+
+    const card = document.createElement('div');
+    card.className = 'upgrade-card' + (isMaxed ? ' maxed' : '');
+    let levelIndicator = '';
+    if (!def.repeatable) {
+      levelIndicator = ` <span style="color:#7799bb;font-size:9px">[${currentLevel}/${maxLevel}]</span>`;
+    } else if (currentLevel > 0) {
+      levelIndicator = ` <span style="color:#ffcc44;font-size:9px">(\xd7${currentLevel} used)</span>`;
+    }
+    card.innerHTML = `
+      <div class="upgrade-name">${def.name}${levelIndicator}</div>
+      <div class="upgrade-desc">${def.desc}</div>
+      ${isMaxed
+        ? `<span style="color:var(--color-accent);font-size:10px;letter-spacing:1px">&#10003; MAXED</span>`
+        : `<button class="upgrade-btn" ${canAfford ? '' : 'disabled'} onclick="purchaseUpgrade('${def.id}')">
+             ${levelDef.label} &mdash; ${levelDef.cost} CR &nbsp;|&nbsp; ${levelDef.effect}
+           </button>`
+      }
+    `;
+    body.appendChild(card);
+  });
+}
+
+function toggleUpgrades() {
+  const body = document.getElementById('upgrades-body');
+  const icon = document.getElementById('upgrades-toggle-icon');
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (icon) icon.textContent = isOpen ? '\u25bc' : '\u25b2';
+}
+
+function purchaseUpgrade(id) {
+  const def = UPGRADE_DEFS.find(d => d.id === id);
+  if (!def) return;
+  const currentLevel = upgrades[id] || 0;
+  const maxLevel = def.levels.length;
+  if (!def.repeatable && currentLevel >= maxLevel) return;
+  const levelIdx = def.repeatable ? 0 : currentLevel;
+  const levelDef = def.levels[Math.min(levelIdx, maxLevel - 1)];
+  if (credits < levelDef.cost) return;
+
+  credits -= levelDef.cost;
+
+  if (def.repeatable) {
+    upgrades[id] = currentLevel + 1;
+    // Emergency recharge — instantly halve all cooldowns
+    satState.forEach(st => {
+      if (st.status === 'COOLDOWN') {
+        st.cooldown = Math.max(0, st.cooldown / 2);
+      }
+    });
+  } else {
+    upgrades[id] = currentLevel + 1;
+  }
+
+  buildUpgradesPanel();
+  updateHUD();
+}
+
+window.toggleUpgrades = toggleUpgrades;
+window.purchaseUpgrade = purchaseUpgrade;
+
+// ─── PAUSE ────────────────────────────────────────────────────────────────────
+let _preResumeState = 'PLAYING'; // state to restore on resume
+
+function togglePause() {
+  const overlay = document.getElementById('pause-overlay');
+  if (gameState === 'PAUSED') {
+    // Resume
+    overlay.classList.remove('visible');
+    gameState = _preResumeState;
+    lastTimestamp = 0; // reset so dt doesn't spike on resume
+  } else {
+    // Pause
+    _preResumeState = gameState;
+    gameState = 'PAUSED';
+    overlay.classList.add('visible');
+  }
+}
+
+// ─── NIGHT HELPER ─────────────────────────────────────────────────────────────
+function isNightLon(lon) {
+  let diff = lon - sunLon;
+  while (diff > 180) diff -= 360;
+  while (diff < -180) diff += 360;
+  return Math.abs(diff) > 90;
+}
+
+// ─── MAIN LOOP ────────────────────────────────────────────────────────────────
+let frameCount = 0;
+let animTime = 0;
+
+function gameLoop(timestamp) {
+  const dt = lastTimestamp === 0 ? 0 : Math.min((timestamp - lastTimestamp) / 1000, 0.1);
+  lastTimestamp = timestamp;
+  animTime += dt;
+  frameCount++;
+
+  // Update cloud
+  updateClouds(dt);
+  if (frameCount % 10 === 0) {
+    drawClouds();
+    updateCloudCells();
+  }
+
+  if (gameState === 'PLAYING' || gameState === 'RESOLVING') {
+    gameTime += dt;
+    sunLon = -90 + (gameTime * 3) % 360;
+    if (sunLon > 180) sunLon -= 360;
+
+    // Tick satellite cooldowns
+    const rechargeRate = 1 + (upgrades.rechargeBoost * 0.25);
+    satState.forEach((state, si) => {
+      if (state.status === 'COOLDOWN') {
+        state.cooldown -= dt * rechargeRate;
+        if (state.cooldown <= 0) {
+          state.cooldown = 0;
+          state.status = 'NOMINAL';
+          state.extendedBlackout = false;
+        }
+      }
+    });
+
+    // Drain duty cycles slowly over time
+    const dutyRate = 3.5 * (1 + upgrades.dutyRecovery * 0.5);
+    satState.forEach(state => {
+      if (state.dutyCycle > 0) state.dutyCycle = Math.max(0, state.dutyCycle - dt * dutyRate);
+    });
+
+    // Tick residual score drains (from MEDIUM-cost mitigations)
+    for (let ri = residualDrains.length - 1; ri >= 0; ri--) {
+      const rd = residualDrains[ri];
+      score -= rd.amount * dt;
+      rd.amount -= dt * 0.1;
+      if (rd.amount <= 0) residualDrains.splice(ri, 1);
+    }
+
+    // Tick space weather timers
+    if (leoDragActive) {
+      leoDragTimer -= dt;
+      if (leoDragTimer <= 0) { leoDragActive = false; leoDragTimer = 0; }
+    }
+    if (cmeActive) {
+      cmeTimer -= dt;
+      if (cmeTimer <= 0) { cmeActive = false; cmeTimer = 0; }
+    }
+
+    // Process background acquisitions
+    for (let ti = pendingTaskings.length - 1; ti >= 0; ti--) {
+      const task = pendingTaskings[ti];
+      task.elapsed += dt;
+      const st = satState[task.satIndex];
+      if (st.status === 'TASKING') {
+        st.taskProgress = task.elapsed;
+        st.taskDuration = task.duration;
+      }
+      // Update tasking overlay countdown if this is the most recent task
+      if (ti === pendingTaskings.length - 1) {
+        const rem = Math.max(0, Math.ceil(task.duration - task.elapsed));
+        const pct = Math.min(100, (task.elapsed / task.duration) * 100);
+        const fillEl = document.getElementById('tasking-bar-fill');
+        const progEl = document.getElementById('tasking-progress');
+        if (fillEl) fillEl.style.width = pct + '%';
+        if (progEl) progEl.textContent = rem > 0 ? `ACQUIRING — ${rem}s` : 'DATA RECEIVED';
+      }
+      if (task.elapsed >= task.duration) {
+        const ev = activeEvents.find(e => e.id === task.eventId);
+        if (ev && ev.status === 'ACQUIRING') {
+          ev.status       = 'DATA_READY';
+          ev.dataReadyTime = gameTime;
+          ev.taskingMatch  = task.match;
+          ev.taskingSatId  = task.satId;
+          ev.forestWatchSAR = task.forestWatchSAR;
+          ev.taskingSatIndex = task.satIndex;
+          // Auto-enter resolving if this event is already selected — removes a click
+          if (selectedEvent && selectedEvent.id === ev.id && gameState !== 'GAMEOVER') {
+            resolveEvent = ev;
+            resolveMatch = task.match;
+            gameState = 'RESOLVING';
+            floatingTexts.push({ x: lonToX(ev.lon), y: latToY(ev.lat) - 20, text: '▶ DATA RECEIVED', color: '#00eeff', age: 0 });
+          } else {
+            floatingTexts.push({ x: lonToX(ev.lon), y: latToY(ev.lat) - 20, text: '▶ DATA READY', color: '#00eeff', age: 0 });
+          }
+        }
+        // Apply cooldown to satellite
+        const sat = SATELLITES[task.satIndex];
+        const dcPenalty = (satState[task.satIndex].dutyCycle || 0);
+        const coolMulti = dcPenalty > 80 ? 1.5 : dcPenalty > 60 ? 1.2 : 1.0;
+        satState[task.satIndex].status  = 'COOLDOWN';
+        satState[task.satIndex].cooldown = sat.cooldownMax * coolMulti;
+        pendingTaskings.splice(ti, 1);
+        if (pendingTaskings.length === 0) document.getElementById('tasking-overlay').className = '';
+      }
+    }
+
+    // Process scheduled follow-up events
+    for (let fi = scheduledFollowups.length - 1; fi >= 0; fi--) {
+      const fu = scheduledFollowups[fi];
+      if (gameTime >= fu.fireAt) {
+        const def = EVENT_TYPES[fu.eventType];
+        if (def && activeEvents.length < 4) {
+          activeEvents.push({
+            id: nextEventId++, type: fu.eventType, category: def.category,
+            title: '[FOLLOW-UP] ' + def.title, lon: fu.lon + (Math.random()-0.5)*4,
+            lat: fu.lat + (Math.random()-0.5)*3, region: fu.region || 'Follow-up Area',
+            spawnTime: gameTime, urgencyMax: def.urgency[1] * 1.2,
+            cloudy: Math.random() < 0.3, status: 'ACTIVE', seed: Math.random()*1000,
+          });
+        }
+        scheduledFollowups.splice(fi, 1);
+      }
+    }
+
+    // Spawn events — faster pacing, scales with game progress
+    const spawnInterval = Math.max(5, 14 - (gameTime / gameDuration) * 9);
+    if (gameTime - lastSpawnTime > spawnInterval) {
+      spawnEvent();
+      lastSpawnTime = gameTime;
+    }
+    checkEscalation();
+
+    // Time's up — normal end
+    if (gameTime >= gameDuration) {
+      triggerGameOver();
+    }
+    // Catastrophic failure — too many missed events or deeply negative score
+    if (eventsFailed >= 6 || (score < -200 && gameTime > 30)) {
+      triggerGameOver();
+    }
+
+    updateHUD();
+    updateSatCards();
+  }
+
+  // Float texts
+  floatingTexts = floatingTexts.filter(ft => ft.age < 1);
+  floatingTexts.forEach(ft => { ft.age += dt; });
+
+  // Always draw event canvas
+  drawEvents(animTime * 60);
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  drawMap();
+  drawClouds();
+  updateCloudCells();
+  buildSatCards();
+  setupEventCanvas();
+  updateDataPanel();
+  renderLog();
+
+  window._fwSetMode = function(sar) { forestWatchSARForced = sar; updateDataPanel(); };
+  buildUpgradesPanel();
+
+  // Duration button wiring
+  document.querySelectorAll('.duration-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      gameDuration = parseInt(btn.dataset.dur, 10);
+    });
+  });
+
+  document.getElementById('start-btn').onclick = () => {
+    document.getElementById('modal-overlay').className = 'hidden';
+    gameState = 'PLAYING';
+    lastSpawnTime = -99;
+  };
+
+  document.getElementById('restart-btn').onclick = () => {
+    resetGame();
+    document.getElementById('modal-overlay').className = 'hidden';
+    document.getElementById('intro-box').style.display = 'none';
+    document.getElementById('gameover-box').style.display = 'none';
+    gameState = 'PLAYING';
+    lastSpawnTime = -99;
+  };
+
+  // Escape / P key — toggle pause
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Escape' || e.key === 'p' || e.key === 'P') &&
+        (gameState === 'PLAYING' || gameState === 'RESOLVING' || gameState === 'PAUSED')) {
+      togglePause();
+    }
+  });
+
+  // Pause overlay buttons
+  document.getElementById('pause-resume-btn').addEventListener('click', () => {
+    if (gameState === 'PAUSED') togglePause();
+  });
+  document.getElementById('pause-end-btn').addEventListener('click', () => {
+    document.getElementById('pause-overlay').classList.remove('visible');
+    triggerGameOver();
+  });
+
+  requestAnimationFrame(gameLoop);
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>
