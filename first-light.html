@@ -119,19 +119,37 @@ html, body {
 #map-canvas { z-index: 1; }
 #cloud-canvas { z-index: 2; pointer-events: none; }
 #event-canvas { z-index: 3; cursor: crosshair; }
-#data-panel {
-  width: 340px; height: 100%;
-  background: var(--bg-panel);
-  border-left: 1px solid var(--bg-panel-border);
-  display: flex; flex-direction: column;
-  flex-shrink: 0;
+#data-panel { display: none; }
+#crisis-panel {
+  position: absolute; top: 8px; right: 8px;
+  width: 400px; max-height: calc(100% - 16px);
+  background: rgba(10, 16, 26, 0.97);
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 3px;
+  box-shadow: 0 4px 40px rgba(0,0,0,0.75);
+  z-index: 8;
+  display: none; flex-direction: column;
   overflow: hidden;
+  backdrop-filter: blur(3px);
 }
-#event-info {
-  flex: 1; overflow-y: auto;
-  padding: 12px;
-  border-bottom: 1px solid var(--bg-panel-border);
-  min-height: 0;
+#crisis-panel.visible { display: flex; }
+#crisis-close-btn {
+  position: absolute; top: 7px; right: 10px;
+  background: none; border: none; cursor: pointer;
+  color: #556677; font-size: 16px; padding: 2px 4px; z-index: 10;
+  font-family: var(--font-mono); line-height: 1;
+}
+#crisis-close-btn:hover { color: #ff6644; }
+#crisis-panel-body {
+  flex: 1; overflow-y: auto; padding: 12px;
+}
+#map-side-panels {
+  position: absolute; bottom: 8px; left: 8px;
+  width: 268px; z-index: 7;
+}
+#event-info { padding: 0; }
+#event-info-placeholder {
+  display: none !important;
 }
 #event-info-placeholder {
   display: flex; flex-direction: column; align-items: center;
@@ -184,10 +202,9 @@ html, body {
 .match-result.blocked { color: var(--color-alert); }
 .flavour-text { color: #99bbdd; font-size: 10px; line-height: 1.6; margin-top: 8px; font-style: italic; padding: 6px; border: 1px solid #1a3040; border-radius: 2px; }
 #action-section {
-  height: 200px; padding: 10px 12px;
-  border-bottom: 1px solid var(--bg-panel-border);
-  flex-shrink: 0;
-  overflow-y: auto;
+  padding: 10px 0 4px 0;
+  border-top: 1px solid var(--bg-panel-border);
+  margin-top: 8px;
 }
 #action-section h4 { color: #aabbcc; font-size: 10px; letter-spacing: 2px; margin-bottom: 8px; }
 .action-btn {
@@ -209,11 +226,13 @@ html, body {
 .cost-indicator.medium { color: #ffcc00; }
 .cost-indicator.low { color: #44cc88; }
 #event-log-section {
-  height: 180px; padding: 8px 12px;
-  flex-shrink: 0; overflow: hidden;
+  padding: 8px 10px; overflow: hidden;
+  background: rgba(10,16,26,0.92);
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 3px; margin-bottom: 4px;
 }
 #event-log-section h4 { color: #aabbcc; font-size: 10px; letter-spacing: 2px; margin-bottom: 6px; }
-#event-log { overflow-y: auto; height: 145px; }
+#event-log { overflow-y: auto; max-height: 110px; }
 .log-entry { font-size: 10px; padding: 2px 0; border-bottom: 1px solid #0a1420; display: flex; justify-content: space-between; }
 .log-entry .log-time { color: #8899cc; }
 .log-entry .log-type { color: #aabbcc; flex: 1; padding: 0 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -262,6 +281,31 @@ html, body {
 .go-stat-label { color: #aabbcc; }
 .go-stat-value { color: #e0e8f0; }
 .go-stat-value.highlight { color: var(--color-accent); font-size: 16px; }
+#gameover-box { max-width: 700px; max-height: 88vh; overflow-y: auto; text-align: left; padding: 32px 40px; }
+.go-btn-row { display: flex; gap: 12px; justify-content: center; margin: 0 0 20px 0; }
+.modal-btn.secondary { border-color: #556677; color: #aabbcc; }
+.modal-btn.secondary:hover { background: rgba(170,187,204,0.08); }
+#recap-section { border-top: 1px solid #1a3040; padding-top: 14px; }
+.recap-section-hdr { color: #aabbcc; font-size: 10px; letter-spacing: 3px; margin-bottom: 10px; text-align: center; }
+.recap-item { padding: 8px 0; border-bottom: 1px solid #0d1828; }
+.recap-row1 { display: flex; align-items: baseline; gap: 8px; }
+.recap-icon { font-size: 13px; width: 16px; flex-shrink: 0; }
+.recap-icon.ok  { color: var(--color-accent); }
+.recap-icon.deg { color: var(--color-amber); }
+.recap-icon.bad { color: var(--color-alert); }
+.recap-icon.obs { color: var(--color-obs); }
+.recap-title { color: #e0e8f0; font-size: 12px; flex: 1; min-width: 0; }
+.recap-score { font-size: 12px; font-weight: bold; white-space: nowrap; }
+.recap-score.pos { color: var(--color-accent); }
+.recap-score.neg { color: var(--color-alert); }
+.recap-response { font-size: 10px; color: #8899aa; margin: 2px 0 3px 24px; }
+.recap-edu { font-size: 10px; color: #667799; line-height: 1.55; margin-left: 24px; font-style: italic; }
+.hiscore-wrap { margin-bottom: 18px; }
+.hiscore-hdr { color: #aabbcc; font-size: 10px; letter-spacing: 3px; margin-bottom: 6px; text-align: center; }
+.hiscore-row { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; border-bottom: 1px solid #0d1828; font-size: 11px; gap: 8px; }
+.hiscore-rank { color: #556677; width: 18px; flex-shrink: 0; }
+.hiscore-val  { color: var(--color-accent); font-weight: bold; }
+.hiscore-meta { color: #7788aa; font-size: 10px; text-align: right; }
 #tasking-overlay {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
   background: rgba(8,15,24,0.96); border: 1px solid var(--color-amber);
@@ -298,10 +342,14 @@ html, body {
 #tasking-bar-fill { height: 100%; background: var(--color-amber); width: 0%; transition: width 0.1s; }
 #space-weather-bar { position: fixed; top: 36px; left: 0; right: 0; z-index: 200; background: rgba(30,20,0,0.92); border-bottom: 1px solid #ffcc22; color: #ffee44; font-family: monospace; font-size: 11px; font-weight: bold; text-align: center; padding: 2px 0; letter-spacing: 0.1em; animation: swblink 1s step-end infinite; }
 @keyframes swblink { 0%,100%{opacity:1} 50%{opacity:0.6} }
-#upgrades-section { border-top: 1px solid var(--bg-panel-border); flex-shrink: 0; }
-#upgrades-header { padding: 8px 12px; cursor: pointer; font-size: 10px; letter-spacing: 2px; color: #aabbcc; background: var(--bg-panel); user-select: none; }
-#upgrades-header:hover { background: #14202e; }
-#upgrades-body { padding: 8px 12px; background: var(--bg-panel); overflow-y: auto; max-height: 200px; }
+#upgrades-section {
+  background: rgba(10,16,26,0.92);
+  border: 1px solid var(--bg-panel-border);
+  border-radius: 3px;
+}
+#upgrades-header { padding: 8px 10px; cursor: pointer; font-size: 10px; letter-spacing: 2px; color: #aabbcc; user-select: none; }
+#upgrades-header:hover { background: rgba(20,32,46,0.8); }
+#upgrades-body { padding: 6px 10px 8px 10px; overflow-y: auto; max-height: 220px; }
 .upgrade-card { margin-bottom: 8px; padding: 8px; border: 1px solid #243650; border-radius: 2px; }
 .upgrade-card.maxed { border-color: var(--color-accent); opacity: 0.7; }
 .upgrade-name { color: #e0e8f0; font-size: 11px; margin-bottom: 3px; }
@@ -343,71 +391,64 @@ html, body {
       <button class="pause-btn" id="pause-resume-btn">RESUME MISSION</button>
       <button class="pause-btn end" id="pause-end-btn">END MISSION</button>
     </div>
-  </div>
 
-  <div id="data-panel">
-    <div id="event-info">
-      <div id="event-info-placeholder">
-        <div class="awaiting">AWAITING TASKING</div>
-        <div class="briefing">
-          FIRST LIGHT MISSION CONTROL<br><br>
-          Monitor your satellite constellation.<br>
-          Task the right sensor for each crisis.<br>
-          Resolve events before they escalate.<br><br>
-          Click an event marker on the map,<br>
-          then select a satellite to task.<br><br>
-          SAR penetrates cloud. Optical &amp; LiDAR cannot.<br>
-          Choose sensors carefully.
-        </div>
-      </div>
-      <div id="event-info-content" style="display:none">
-        <div class="event-title" id="ei-title"></div>
-        <div class="event-region" id="ei-region"></div>
-        <div id="ei-cat-badge" class="cat-badge"></div>
-        <div style="margin-top:10px">
-          <div class="sat-rec-label">RECOMMENDED SENSORS</div>
-          <div id="ei-sat-recs"></div>
-        </div>
-        <div id="ei-cloud-warn"></div>
-        <div id="fw-mode-toggle" style="display:none"></div>
-        <div class="task-instruction" id="ei-instruction">
-          Select a satellite from the left panel to task.<br>
-          <span>OPTIMAL:</span> primary sensor &nbsp; <span>DEGRADED:</span> acceptable sensor
-        </div>
-        <canvas id="product-canvas" width="320" height="240" style="display:none"></canvas>
-        <div id="ei-metrics" style="display:none">
-          <div id="fw-active-mode" style="display:none;font-size:10px;color:#44dd88;padding:3px 0;letter-spacing:1px;"></div>
-          <div class="metric-row"><span class="metric-label">EXTENT</span><span class="metric-value" id="m-extent">—</span></div>
-          <div class="metric-row"><span class="metric-label">INTENSITY</span><span class="metric-value" id="m-intensity">—</span></div>
-          <div class="metric-row"><span class="metric-label">CONFIDENCE</span><span class="metric-value" id="m-confidence">—</span></div>
-          <div class="confidence-bar-wrap">
-            <div class="confidence-bar-label">CONFIDENCE LEVEL</div>
-            <div class="confidence-bar"><div class="confidence-bar-fill" id="conf-fill" style="width:0%"></div></div>
+    <!-- Floating crisis panel — appears on event selection, click outside to close -->
+    <div id="crisis-panel">
+      <button id="crisis-close-btn" title="Close (click map to dismiss)">&#x2715;</button>
+      <div id="crisis-panel-body">
+        <div id="event-info">
+          <div id="event-info-placeholder"></div>
+          <div id="event-info-content">
+            <div class="event-title" id="ei-title"></div>
+            <div class="event-region" id="ei-region"></div>
+            <div id="ei-cat-badge" class="cat-badge"></div>
+            <div style="margin-top:10px">
+              <div class="sat-rec-label">RECOMMENDED SENSORS</div>
+              <div id="ei-sat-recs"></div>
+            </div>
+            <div id="ei-cloud-warn"></div>
+            <div id="fw-mode-toggle" style="display:none"></div>
+            <div class="task-instruction" id="ei-instruction">
+              Select a satellite from the left panel to task.<br>
+              <span>OPTIMAL:</span> primary sensor &nbsp; <span>DEGRADED:</span> acceptable sensor
+            </div>
+            <canvas id="product-canvas" width="320" height="240" style="display:none"></canvas>
+            <div id="ei-metrics" style="display:none">
+              <div id="fw-active-mode" style="display:none;font-size:10px;color:#44dd88;padding:3px 0;letter-spacing:1px;"></div>
+              <div class="metric-row"><span class="metric-label">EXTENT</span><span class="metric-value" id="m-extent">—</span></div>
+              <div class="metric-row"><span class="metric-label">INTENSITY</span><span class="metric-value" id="m-intensity">—</span></div>
+              <div class="metric-row"><span class="metric-label">CONFIDENCE</span><span class="metric-value" id="m-confidence">—</span></div>
+              <div class="confidence-bar-wrap">
+                <div class="confidence-bar-label">CONFIDENCE LEVEL</div>
+                <div class="confidence-bar"><div class="confidence-bar-fill" id="conf-fill" style="width:0%"></div></div>
+              </div>
+              <div class="match-result" id="match-result"></div>
+              <div class="flavour-text" id="flavour-text" style="display:none"></div>
+              <div id="ei-mitigation-timeout" class="mitigation-timeout" style="display:none"></div>
+            </div>
           </div>
-          <div class="match-result" id="match-result"></div>
-          <div class="flavour-text" id="flavour-text" style="display:none"></div>
-          <div id="ei-mitigation-timeout" class="mitigation-timeout" style="display:none"></div>
+        </div>
+        <div id="action-section">
+          <h4>MITIGATION ACTIONS</h4>
+          <div id="action-buttons"></div>
         </div>
       </div>
     </div>
 
-    <div id="action-section">
-      <h4>MITIGATION ACTIONS</h4>
-      <div id="action-buttons"></div>
-    </div>
-
-    <div id="event-log-section">
-      <h4>EVENT LOG</h4>
-      <div id="event-log"></div>
-    </div>
-
-    <div id="upgrades-section">
-      <div id="upgrades-header" onclick="toggleUpgrades()">
-        UPGRADES &nbsp;<span id="credits-display" style="color:#ffcc44">0 CR</span>
-        <span style="float:right;color:#7799bb" id="upgrades-toggle-icon">&#9660;</span>
+    <!-- Persistent bottom-left overlays: event log + upgrades -->
+    <div id="map-side-panels">
+      <div id="upgrades-section">
+        <div id="upgrades-header" onclick="toggleUpgrades()">
+          UPGRADES &nbsp;<span id="credits-display" style="color:#ffcc44">0 CR</span>
+          <span style="float:right;color:#7799bb" id="upgrades-toggle-icon">&#9650;</span>
+        </div>
+        <div id="upgrades-body" style="display:block">
+          <!-- upgrade cards rendered by JS -->
+        </div>
       </div>
-      <div id="upgrades-body" style="display:none">
-        <!-- upgrade cards rendered by JS -->
+      <div id="event-log-section">
+        <h4>EVENT LOG</h4>
+        <div id="event-log"></div>
       </div>
     </div>
   </div>
@@ -432,14 +473,22 @@ html, body {
       <button class="duration-btn selected" data-dur="600">STANDARD<br><span>10 MIN</span></button>
       <button class="duration-btn" data-dur="900">MARATHON<br><span>15 MIN</span></button>
     </div>
+    <div id="hiscore-section"></div>
     <div class="modal-attr">A <a href="https://diamondsky.au" target="_blank" style="color:#aabbdd;text-decoration:underline">Diamond Sky</a> portfolio piece — diamondsky.au</div>
     <button class="modal-btn" id="start-btn">INITIATE MISSION</button>
   </div>
   <div class="modal-box" id="gameover-box" style="display:none">
-    <div class="modal-title" style="font-size:32px;margin-bottom:4px">MISSION CONCLUDED</div>
-    <div class="modal-subtitle" style="margin-bottom:16px">END OF MISSION REPORT</div>
+    <div class="modal-title" style="font-size:32px;margin-bottom:4px;text-align:center">MISSION CONCLUDED</div>
+    <div class="modal-subtitle" style="margin-bottom:16px;text-align:center">END OF MISSION REPORT</div>
     <div class="gameover-stats" id="go-stats"></div>
-    <button class="modal-btn" id="restart-btn">PLAY AGAIN</button>
+    <div class="go-btn-row">
+      <button class="modal-btn" id="restart-btn">PLAY AGAIN</button>
+      <button class="modal-btn secondary" id="home-btn">BACK TO HOME</button>
+    </div>
+    <div id="recap-section">
+      <div class="recap-section-hdr">MISSION RECAP</div>
+      <div id="recap-list"></div>
+    </div>
   </div>
 </div>
 
@@ -501,6 +550,45 @@ const EVENT_TYPES = {
   GEOMAGNETIC_STORM: { title:'Geomagnetic Storm',         category:'space_weather', urgency:[120,240], primary:['SOL-WATCH'],                 acceptable:['SOL-WATCH','FIRE-WATCH','FLOOD-EYE','CARBON-SENSE','URBAN-LENS','COAST-GUARD','STORM-EYE'], dataProduct:'solar', flavour:'Kp index reaching storm-level threshold. Induced currents in long conductors. Satellite operators reporting attitude disturbances. Aurora visible at unusually low latitudes.', locations:[[0,62,'Subsolar Region'],[0,62,'Subsolar Region'],[0,62,'Subsolar Region']], mitigations:[{id:'attitude',label:'Satellite Attitude Alert',risk:'MEDIUM',cost:'MEDIUM',points:170},{id:'powerline',label:'Power Line Advisory',risk:'LOW',cost:'LOW',points:150},{id:'ack',label:'Acknowledge & Log',risk:'LOW',cost:'LOW',points:100}] },
   SATELLITE_DRAG:    { title:'Satellite Drag Event',      category:'space_weather', urgency:[150,300], primary:['SOL-WATCH'],                 acceptable:['SOL-WATCH'],                     dataProduct:'solar',        flavour:'Elevated solar activity heating upper atmosphere. LEO satellite drag increasing. Operators adjusting orbit maintenance burns. Expect increased revisit times across constellation.', locations:[[0,62,'Subsolar Region'],[0,62,'Subsolar Region'],[0,62,'Subsolar Region']], mitigations:[{id:'orbit_adj',label:'Orbit Adjustment Burns',risk:'HIGH',cost:'HIGH',points:200},{id:'rescheduling',label:'Tasking Rescheduling',risk:'LOW',cost:'LOW',points:150},{id:'monitor',label:'Monitor & Log',risk:'LOW',cost:'LOW',points:110}] },
   RADIO_BLACKOUT:    { title:'Radio Blackout Event',      category:'space_weather', urgency:[60,120],  primary:['SOL-WATCH'],                 acceptable:['SOL-WATCH'],                     dataProduct:'solar',        flavour:'Solar X-ray flux causing D-layer absorption. HF communications blackout on sunlit hemisphere. Ground stations switching to satellite uplink backup systems.', locations:[[0,62,'Subsolar Region'],[0,62,'Subsolar Region'],[0,62,'Subsolar Region']], mitigations:[{id:'backup_comms',label:'Activate Backup Comms',risk:'LOW',cost:'LOW',points:130},{id:'aviation',label:'Aviation HF Warning',risk:'LOW',cost:'LOW',points:150},{id:'maritime',label:'Maritime Safety Notice',risk:'LOW',cost:'LOW',points:120}] },
+};
+
+// ─── EVENT EDUCATIONAL DESCRIPTIONS ─────────────────────────────────────────
+const EVENT_EDU = {
+  WILDFIRE:          'Thermal IR maps fire radiative power and perimeter through smoke. Real-time overpass data directs aerial suppression resources and evacuation routing.',
+  FLOODING:          'SAR penetrates cloud to map inundation extent as floodwaters peak. 6h revisit tracks rapidly evolving flood boundaries in near-real time.',
+  TROPICAL_STORM:    'GEO sounder profiles atmospheric layers to predict storm intensification hours in advance. Continuous coverage tracks every track and intensity change.',
+  VOLCANIC:          'Thermal maps lava flow boundaries; hyperspectral maps SO2 and ash extent for aviation routing. Combined sensors drive no-fly zones and evacuation radii.',
+  OIL_SPILL:         'Ocean colour detects slick extent and thickness within hours of a spill. Early containment prevents coastline contamination and wildlife impact.',
+  ALGAL_BLOOM:       'Chlorophyll concentration maps reveal harmful bloom extent and toxin risk to fisheries and water supplies. Thermal tracks warm-water conditions driving growth.',
+  WATER_QUALITY:     'Turbidity and colour anomalies reveal sediment and pollution from river outflow. Early detection enables downstream warnings before contamination spreads.',
+  DEFORESTATION:     'NDVI change detection identifies cleared forest patches. SAR adds all-weather capability where tropical cloud cover blocks optical sensors year-round.',
+  CROP_FAILURE:      'NDVI anomalies reveal crop stress weeks before visible damage. Early satellite warning enables food security response before a harvest fails.',
+  COASTAL_EROSION:   'Shoreline change from optical plus elevation loss from LiDAR gives a complete coastal hazard picture. InSAR detects land subsidence driving accelerated erosion.',
+  URBAN_HEAT:        'Thermal satellites map urban heat island intensity at neighbourhood scale. High-resolution optical identifies where green infrastructure will cool most effectively.',
+  DUST_STORM:        'Aerosol optical depth tracks dust plumes across continents. Aviation, agriculture, and public health all depend on timely dust event characterisation and routing.',
+  OCEAN_CARBON:      'Surface pCO2 anomalies indicate changes to the ocean\'s capacity to absorb atmospheric CO2 — foundational data for global carbon budget models.',
+  METHANE_PLUME:     'Hyperspectral sensors attribute methane emissions to specific facilities. A single undetected industrial leak can negate years of emissions reduction work.',
+  PERMAFROST:        'InSAR detects millimetre-scale subsidence as permafrost thaws — early warning for infrastructure at risk. Hyperspectral confirms associated methane release.',
+  GROUNDWATER:       'InSAR surface subsidence maps aquifer depletion before collapse becomes irreversible. Combined with crop stress indices, guides irrigation restriction decisions.',
+  ICE_LOSS:          'LiDAR elevation change plus SAR ice velocity quantifies mass loss contribution to sea level rise — core input to global climate projections.',
+  CORAL_BLEACHING:   'Sea surface temperature predicts bleaching risk days in advance. Reefs support 25% of marine species and billions of dollars in annual fisheries revenue.',
+  ILLEGAL_LOGGING:   'SAR detects canopy removal through cloud. Optical adds logging road and equipment identification. Together they build prosecutable evidence of illegal activity.',
+  FIRE_ENCROACHMENT: 'Forest-fire interface monitoring requires simultaneous thermal hotspot mapping and canopy damage assessment — FOREST-WATCH\'s dual payload provides both.',
+  BIOMASS_CHANGE:    'LiDAR canopy height plus optical biomass indices quantifies carbon stock changes at the precision needed for international carbon credit verification.',
+  SOLAR_FLARE:       'X-class flares emit X-ray and EUV radiation that ionises the upper atmosphere, degrading HF radio. SOL-WATCH at L1 provides 8-minute advance warning.',
+  CME:               'Coronal Mass Ejections carry magnetised plasma at up to 3,000 km/s. L1 monitoring gives 15–60 minutes for power grid operators to shed load and protect transformers.',
+  GEOMAGNETIC_STORM: 'Storms induce electrical currents in power lines, pipelines, and rail. Kp index monitoring enables protective action before transformer damage occurs.',
+  SATELLITE_DRAG:    'Solar heating expands the upper atmosphere, increasing LEO drag. Without orbit maintenance burns, satellite revisit times degrade across the whole constellation.',
+  RADIO_BLACKOUT:    'Solar proton events block HF radio on the sunlit hemisphere for hours. Aviation and maritime safety services depend on timely blackout warnings to reroute.',
+  MUSIC_FESTIVAL:    'Temporary urban infrastructure — stages, crowd density, sanitation — is visible at sub-metre resolution. Useful for logistics and crowd safety planning.',
+  WHALE_MIGRATION:   'Ocean colour detects biological hotspots attracting whale aggregations. Satellite migration routes inform shipping lane adjustments to reduce strike risk.',
+  AURORA_EVENT:      'Geomagnetic storms cause LEO sensor interference and also drive spectacular auroral displays. The same solar wind that challenges satellites creates extraordinary sky events.',
+  STADIUM_EVENT:     'The thermal signature of 90,000 people in one place is visible from orbit. Stadiums serve as calibration targets for urban heat and crowd density remote sensing studies.',
+  ROCKET_LAUNCH:     'Launch exhaust plumes carry a chemical fingerprint of the propellant. Hyperspectral sensors can identify propellant type and estimate combustion efficiency from orbit.',
+  BIOLUMINESCENT:    'Bioluminescent dinoflagellate blooms are detectable by sensitive night-time optical sensors. While spectacular, dense blooms signal nutrient imbalances in coastal waters.',
+  DESERT_BLOOM:      'Rare rainfall triggers NDVI spikes in arid regions — some of the most dramatic vegetation anomalies in the satellite record. Superblooms can carpet hundreds of square kilometres.',
+  ANTARCTIC_RESUPPLY:'Ice runway conditions and sea ice extent around Antarctic stations are monitored year-round by satellite, enabling safe resupply routing for isolated research teams.',
+  SAT_LAUNCH_OBS:    'A newly launched satellite\'s plume and orbital insertion are detectable from L1. Every satellite watching Earth was once a launch event itself.',
 };
 
 const MITIGATION_FOLLOWUP_MAP = {
@@ -616,6 +704,7 @@ let taskingDuration = 0;
 let resolveEvent = null;
 let resolveMatch = 'none'; // optimal/acceptable/wrong
 let eventLog = [];
+let eventHistory = []; // full record for end-of-game recap
 let floatingTexts = [];
 let lastSpawnTime = -99; // trigger immediate first spawn
 let cloudFrame = 0;
@@ -867,16 +956,18 @@ function drawEvents(t) {
   ctx.clearRect(0, 0, MAP_W, MAP_H);
 
   // Night hemisphere overlay
-  const dawnX = lonToX(sunLon - 90);
-  const duskX = lonToX(sunLon + 90);
+  // Normalise to [-180,180] before mapping to canvas pixels to prevent out-of-bounds rendering
+  const normLon = lon => { let l = ((lon % 360) + 360) % 360; return l > 180 ? l - 360 : l; };
+  const dawnX = lonToX(normLon(sunLon - 90));
+  const duskX = lonToX(normLon(sunLon + 90));
   ctx.save();
   ctx.fillStyle = 'rgba(0,5,25,0.38)';
   if (dawnX < duskX) {
-    // Night on left and right
+    // Day region is dawnX→duskX; night fills left strip and right strip
     ctx.fillRect(0, 0, dawnX, MAP_H);
     ctx.fillRect(duskX, 0, MAP_W - duskX, MAP_H);
   } else {
-    // Night in the middle
+    // Day wraps date-line; night is the middle strip
     ctx.fillRect(duskX, 0, dawnX - duskX, MAP_H);
   }
   // Terminator glow
@@ -1445,11 +1536,6 @@ function updateSatCards() {
     const capacityConstrained = dc >= 100;
 
     card.className = 'sat-card';
-    // SOL-WATCH dim when no space weather events active
-    if (sat.id === 'SOL-WATCH') {
-      const hasSpaceWeather = activeEvents.some(e => e.category === 'space_weather');
-      if (!hasSpaceWeather) card.classList.add('sol-inactive');
-    }
     if (capacityConstrained) {
       card.className = 'sat-card cooldown';
       statusEl.className = 'sat-status cooldown-st';
@@ -1483,6 +1569,12 @@ function updateSatCards() {
       const pct2 = Math.min(100, (1 - state.cooldown / coolMax) * 100);
       if (pb) { pb.style.width = pct2 + '%'; pb.className = 'sat-progress-bar filling'; pb.style.background = ''; }
     }
+    // SOL-WATCH: apply dim AFTER state classes are set so it can't be overwritten
+    // Keep full opacity while actively tasking a space weather event
+    if (sat.id === 'SOL-WATCH' && state.status !== 'TASKING') {
+      const hasSpaceWeather = activeEvents.some(e => e.category === 'space_weather');
+      if (!hasSpaceWeather) card.classList.add('sol-inactive');
+    }
   });
 }
 
@@ -1492,9 +1584,11 @@ function spawnEvent() {
   if (activeEvents.length >= maxEvents) return;
 
   const cloudProb = Math.min(0.6, 0.2 + (gameTime / (25 * 60)) * 0.4);
+  // Force first event to be an observation so new players learn the loop with no penalty
+  const isFirstEvent = eventsResolved === 0 && eventsFailed === 0 && activeEvents.length === 0;
   const rng = Math.random();
-  const isObs = rng < 0.2;
-  const isSpaceWeather = rng >= 0.2 && rng < 0.3; // ~10% chance
+  const isObs = isFirstEvent || rng < 0.2;
+  const isSpaceWeather = !isFirstEvent && rng >= 0.2 && rng < 0.3; // ~10% chance, never first
   const keys = isObs ? OBS_EVENT_KEYS : isSpaceWeather ? SPACE_WEATHER_KEYS : CRISIS_EVENT_KEYS;
   const key = keys[Math.floor(Math.random() * keys.length)];
   const def = EVENT_TYPES[key];
@@ -1580,6 +1674,17 @@ function setupEventCanvas() {
         gameState = 'RESOLVING';
       }
       updateDataPanel();
+    } else {
+      // Click on empty map — close the crisis panel
+      if (selectedEvent) {
+        if (gameState === 'RESOLVING') {
+          gameState = 'PLAYING';
+          resolveEvent = null;
+          hideActionButtons();
+        }
+        selectedEvent = null;
+        updateDataPanel();
+      }
     }
   });
 }
@@ -1660,6 +1765,7 @@ function onSatClick(si) {
 
 // ─── DATA PANEL ──────────────────────────────────────────────────────────────
 function updateDataPanel() {
+  const crisisPanel = document.getElementById('crisis-panel');
   const placeholder = document.getElementById('event-info-placeholder');
   const content = document.getElementById('event-info-content');
   const productCanvas = document.getElementById('product-canvas');
@@ -1669,14 +1775,14 @@ function updateDataPanel() {
   const actionButtons = document.getElementById('action-buttons');
 
   if (!selectedEvent) {
-    placeholder.style.display = 'flex';
-    content.style.display = 'none';
+    if (crisisPanel) crisisPanel.classList.remove('visible');
     hideActionButtons();
     return;
   }
 
-  placeholder.style.display = 'none';
-  content.style.display = 'block';
+  if (crisisPanel) crisisPanel.classList.add('visible');
+  if (placeholder) placeholder.style.display = 'none';
+  if (content) content.style.display = 'block';
 
   const ev = selectedEvent;
   const def = EVENT_TYPES[ev.type];
@@ -1755,10 +1861,10 @@ function updateDataPanel() {
       ctx.fillStyle = '#ff3333';
       ctx.font = 'bold 18px Courier New';
       ctx.textAlign = 'center';
-      ctx.fillText(resolveMatch === 'blocked' ? 'CLOUD BLOCKED' : 'NO DATA', 160, 115);
+      ctx.fillText(resolveMatch === 'blocked' ? 'CLOUD BLOCKED' : 'NO USABLE DATA', 160, 115);
       ctx.font = '11px Courier New';
       ctx.fillStyle = '#aa3333';
-      ctx.fillText(resolveMatch === 'blocked' ? 'OPTICAL SENSOR OBSTRUCTED' : 'WRONG SENSOR TYPE', 160, 135);
+      ctx.fillText(resolveMatch === 'blocked' ? 'OPTICAL SENSOR OBSTRUCTED' : 'WRONG SENSOR — NO RETURN', 160, 135);
       ctx.textAlign = 'left';
     }
 
@@ -1786,7 +1892,7 @@ function updateDataPanel() {
     if (resolveMatch === 'optimal') { matchResult.className = 'match-result optimal'; matchResult.textContent = 'SATELLITE MATCH: OPTIMAL'; }
     else if (resolveMatch === 'acceptable') { matchResult.className = 'match-result degraded'; matchResult.textContent = 'SATELLITE MATCH: DEGRADED'; }
     else if (resolveMatch === 'blocked') { matchResult.className = 'match-result blocked'; matchResult.textContent = 'SATELLITE MATCH: CLOUD BLOCKED'; }
-    else { matchResult.className = 'match-result blocked'; matchResult.textContent = 'SATELLITE MATCH: WRONG SENSOR'; }
+    else { matchResult.className = 'match-result blocked'; matchResult.textContent = 'NO USABLE DATA — WRONG SENSOR'; }
 
     // Flavour text for observation events
     const flavourDiv = document.getElementById('flavour-text');
@@ -1814,22 +1920,45 @@ function updateDataPanel() {
       timeoutEl.style.color = timeRemain < 20 ? '#ff3333' : timeRemain < 45 ? '#ffaa00' : '#8899aa';
     }
 
-    // Action buttons — only shown for valid data returns
+    // Action buttons — tiered by data quality
     actionButtons.innerHTML = '';
     if (resolveMatch === 'wrong') {
-      // Wrong satellite: no data product, no valid actions available
+      // Wrong satellite: dismiss only
       const dismissBtn = document.createElement('button');
       dismissBtn.className = 'action-btn';
       dismissBtn.style.borderColor = '#ff3333';
       dismissBtn.style.color = '#ff3333';
-      dismissBtn.innerHTML = 'DISMISS — WRONG SENSOR &nbsp;<span class="risk-badge HIGH">NO DATA</span>';
+      dismissBtn.innerHTML = 'DISMISS — NO USABLE DATA &nbsp;<span class="risk-badge HIGH">WRONG SENSOR</span>';
       dismissBtn.onclick = () => onMitigationClick({ id: 'wrong_dismiss', label: 'Dismiss', risk: 'HIGH', points: 0 }, ev);
       actionButtons.appendChild(dismissBtn);
+    } else if (resolveMatch === 'blocked') {
+      // Cloud-blocked: only a partial report action
+      const hdr = document.createElement('div');
+      hdr.style.cssText = 'font-size:10px;color:#ff6644;margin-bottom:6px;letter-spacing:1px;';
+      hdr.textContent = '⚠ CLOUD BLOCKED — PARTIAL DATA ONLY';
+      actionButtons.appendChild(hdr);
+      const partialBtn = document.createElement('button');
+      partialBtn.className = 'action-btn';
+      partialBtn.style.borderColor = '#aa4422';
+      partialBtn.style.color = '#cc6644';
+      partialBtn.innerHTML = 'FILE PARTIAL REPORT &nbsp;<span class="risk-badge LOW">LOW</span><span class="cost-indicator low">✓ Limited intelligence — use SAR next time</span>';
+      partialBtn.onclick = () => onMitigationClick({ id: 'partial_report', label: 'File Partial Report', risk: 'LOW', cost: 'LOW', points: 30 }, ev);
+      actionButtons.appendChild(partialBtn);
     } else {
+      // Determine which tiers are unlocked based on match quality
+      const tierLabel = resolveMatch === 'optimal'
+        ? '<span style="color:#00ff88">✓ OPTIMAL DATA — ALL ACTIONS UNLOCKED</span>'
+        : '<span style="color:#ffaa00">~ DEGRADED DATA — HIGH-IMPACT ACTIONS LOCKED</span>';
+      const hdr = document.createElement('div');
+      hdr.style.cssText = 'font-size:10px;letter-spacing:1px;margin-bottom:6px;';
+      hdr.innerHTML = tierLabel;
+      actionButtons.appendChild(hdr);
+
       def.mitigations.forEach(m => {
+        const cost = m.cost || m.risk;
+        const lockedByDegradedData = resolveMatch === 'acceptable' && cost === 'HIGH';
         const btn = document.createElement('button');
         btn.className = 'action-btn';
-        const cost = m.cost || m.risk;
         let costLine = '';
         if (cost === 'HIGH') {
           costLine = `<span class="cost-indicator high">\u25b2 HIGH IMPACT \u2014 duty cycle \xd72 + follow-up tasking required</span>`;
@@ -1838,8 +1967,16 @@ function updateDataPanel() {
         } else {
           costLine = `<span class="cost-indicator low">\u2713 LOW IMPACT \u2014 partial resolution only</span>`;
         }
-        btn.innerHTML = `${m.label} <span class="risk-badge ${m.risk}">${m.risk}</span>${costLine}`;
-        btn.onclick = () => onMitigationClick(m, ev);
+        if (lockedByDegradedData) {
+          btn.style.opacity = '0.35';
+          btn.style.cursor = 'not-allowed';
+          btn.style.borderColor = '#334';
+          btn.innerHTML = `${m.label} <span class="risk-badge ${m.risk}">${m.risk}</span><span class="cost-indicator high">🔒 REQUIRES OPTIMAL DATA — RETASK WITH CORRECT SENSOR</span>`;
+          // no onclick
+        } else {
+          btn.innerHTML = `${m.label} <span class="risk-badge ${m.risk}">${m.risk}</span>${costLine}`;
+          btn.onclick = () => onMitigationClick(m, ev);
+        }
         actionButtons.appendChild(btn);
       });
     }
@@ -1913,11 +2050,12 @@ function onMitigationClick(mitigation, ev) {
     eventsResolved++;
     const mm2 = String(Math.floor(gameTime / 60)).padStart(2, '0');
     const ss2 = String(Math.floor(gameTime % 60)).padStart(2, '0');
-    addLogEntry(`T+${mm2}:${ss2}`, 'WRONG SAT: ' + ev.title.substring(0, 14), penalty, false);
+    addLogEntry(`T+${mm2}:${ss2}`, 'NO DATA: ' + ev.title.substring(0, 16), penalty, false);
     if (penalty !== 0) {
       const ex2 = lonToX(ev.lon), ey2 = latToY(ev.lat);
       floatingTexts.push({ x: ex2, y: ey2, text: `${penalty}`, color: '#ff3333', age: 0 });
     }
+    eventHistory.push({ type:ev.type, title:ev.title, category:ev.category, region:ev.region, outcome:'wrong', satellite:ev.taskingSatId||null, mitigation:'Dismissed', matchQuality:'wrong', scoreEarned:penalty });
     activeEvents = activeEvents.filter(e => e.id !== ev.id);
     selectedEvent = null;
     resolveEvent = null;
@@ -1982,6 +2120,7 @@ function onMitigationClick(mitigation, ev) {
   // Award credits
   const creditEarned = Math.max(5, Math.floor(total * 0.35));
   credits += creditEarned;
+  buildUpgradesPanel();
 
   // Log entry
   const mm = String(Math.floor(gameTime / 60)).padStart(2, '0');
@@ -2038,6 +2177,10 @@ function onMitigationClick(mitigation, ev) {
       floatingTexts.push({ x: ex, y: ey + 15, text: `+FOLLOW-UP`, color: '#ffcc44', age: 0 });
     }
   }
+
+  // Record for end-of-game recap
+  const recOutcome = resolveMatch === 'blocked' ? 'blocked' : resolveMatch === 'acceptable' ? 'degraded' : 'resolved';
+  eventHistory.push({ type:ev.type, title:ev.title, category:ev.category, region:ev.region, outcome:recOutcome, satellite:ev.taskingSatId||null, mitigation:mitigation.label, matchQuality:resolveMatch, scoreEarned:total });
 
   // Remove event
   activeEvents = activeEvents.filter(e => e.id !== ev.id);
@@ -2147,6 +2290,7 @@ function checkEscalation() {
       }
       const penalty = ev.category === 'observation' ? 0 : ev.category === 'space_weather' ? -180 : (ev.category === 'short' ? -200 : ev.category === 'medium' ? -150 : -100);
       score += penalty;
+      eventHistory.push({ type:ev.type, title:ev.title, category:ev.category, region:ev.region, outcome:'escalated', satellite:null, mitigation:null, matchQuality:null, scoreEarned:penalty });
       if (penalty < 0) {
         const ex = lonToX(ev.lon), ey = latToY(ev.lat);
         floatingTexts.push({ x: ex, y: ey, text: `${penalty}`, color: '#ff3333', age: 0 });
@@ -2170,6 +2314,7 @@ function checkEscalation() {
       eventsFailed++;
       const penalty = ev.category === 'observation' ? 0 : ev.category === 'space_weather' ? -180 : (ev.category === 'short' ? -200 : ev.category === 'medium' ? -150 : -100);
       score += penalty;
+      eventHistory.push({ type:ev.type, title:ev.title, category:ev.category, region:ev.region, outcome:'expired', satellite:null, mitigation:null, matchQuality:null, scoreEarned:penalty });
       if (penalty < 0) {
         const ex = lonToX(ev.lon), ey = latToY(ev.lat);
         floatingTexts.push({ x: ex, y: ey, text: `${penalty}`, color: '#ff3333', age: 0 });
@@ -2194,18 +2339,87 @@ function checkEscalation() {
   }
 }
 
+// ─── LOCAL STORAGE HIGH SCORES ───────────────────────────────────────────────
+function loadHighScores() {
+  try { return JSON.parse(localStorage.getItem('firstlight_hi') || '[]'); } catch { return []; }
+}
+function saveHighScore() {
+  const accuracy = eventsResolved + eventsFailed > 0 ? Math.round(100 * eventsResolved / (eventsResolved + eventsFailed)) : 0;
+  const durLabel = gameDuration <= 300 ? 'SPRINT' : gameDuration <= 600 ? 'STANDARD' : 'MARATHON';
+  const entry = { score: Math.max(0, Math.round(score)), resolved: eventsResolved, accuracy, dur: durLabel, date: new Date().toLocaleDateString('en-AU', { day:'numeric', month:'short' }) };
+  const scores = loadHighScores();
+  scores.push(entry);
+  scores.sort((a,b) => b.score - a.score);
+  scores.splice(5);
+  try { localStorage.setItem('firstlight_hi', JSON.stringify(scores)); } catch {}
+}
+function renderHighScores() {
+  const el = document.getElementById('hiscore-section');
+  if (!el) return;
+  const scores = loadHighScores();
+  if (scores.length === 0) { el.innerHTML = ''; return; }
+  const rows = scores.map((s, i) => `
+    <div class="hiscore-row">
+      <span class="hiscore-rank">#${i+1}</span>
+      <span class="hiscore-val">${s.score.toLocaleString()}</span>
+      <span class="hiscore-meta">${s.resolved} resolved &nbsp;·&nbsp; ${s.accuracy}% &nbsp;·&nbsp; ${s.dur} &nbsp;·&nbsp; ${s.date}</span>
+    </div>`).join('');
+  el.innerHTML = `<div class="hiscore-wrap"><div class="hiscore-hdr">HIGH SCORES</div>${rows}</div>`;
+}
+
+// ─── MISSION RECAP ────────────────────────────────────────────────────────────
+function renderRecap() {
+  const list = document.getElementById('recap-list');
+  if (!list) return;
+  if (eventHistory.length === 0) {
+    list.innerHTML = '<div style="color:#445566;font-size:11px;text-align:center;padding:12px 0">No events recorded this mission.</div>';
+    return;
+  }
+  const catColors = { short:'#ff5555', medium:'#ffaa00', long:'#4499ff', observation:'#00ccbb', space_weather:'#ffee44' };
+  const catLabels = { short:'URGENT', medium:'ELEVATED', long:'MONITOR', observation:'OBS', space_weather:'SPACE WX' };
+  list.innerHTML = eventHistory.map(h => {
+    const edu = EVENT_EDU[h.type] || '';
+    const cc = catColors[h.category] || '#aabbcc';
+    const cl = catLabels[h.category] || h.category.toUpperCase();
+    let iconCls, iconChr;
+    if (h.outcome === 'resolved' && h.matchQuality === 'optimal')     { iconCls='ok';  iconChr='✓'; }
+    else if (h.outcome === 'degraded')                                 { iconCls='deg'; iconChr='~'; }
+    else if (h.outcome === 'blocked')                                  { iconCls='deg'; iconChr='≈'; }
+    else if (h.category === 'observation' && h.outcome !== 'escalated'){ iconCls='obs'; iconChr='●'; }
+    else                                                               { iconCls='bad'; iconChr='✗'; }
+    const scoreTxt = h.scoreEarned >= 0 ? `+${h.scoreEarned}` : `${h.scoreEarned}`;
+    const scoreCls = h.scoreEarned > 0 ? 'pos' : 'neg';
+    let resp;
+    if (h.outcome === 'escalated') resp = '<span style="color:#ff4444">NOT RESOLVED — escalated without tasking</span>';
+    else if (h.outcome === 'expired')   resp = '<span style="color:#ff6644">EXPIRED mid-acquisition — satellite duty cycle wasted</span>';
+    else if (h.outcome === 'wrong')     resp = `<span style="color:#ff6644">${h.satellite||'?'} → No usable data (wrong sensor type)</span>`;
+    else if (h.outcome === 'blocked')   resp = `<span style="color:#ff8844">${h.satellite||'?'} → Cloud blocked — partial report only</span>`;
+    else {
+      const ql = h.matchQuality==='optimal' ? `<span style="color:#00ff88">OPTIMAL</span>` : `<span style="color:#ffaa00">DEGRADED</span>`;
+      resp = `${h.satellite||'?'} → ${h.mitigation} ${ql}`;
+    }
+    return `<div class="recap-item">
+      <div class="recap-row1">
+        <span class="recap-icon ${iconCls}">${iconChr}</span>
+        <span class="recap-title"><span style="color:${cc};font-size:9px;letter-spacing:1px">[${cl}]</span> ${h.title} <span style="color:#556677;font-size:10px">— ${h.region}</span></span>
+        <span class="recap-score ${scoreCls}">${scoreTxt}</span>
+      </div>
+      <div class="recap-response">${resp}</div>
+      ${edu ? `<div class="recap-edu">${edu}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
 // ─── GAME OVER ────────────────────────────────────────────────────────────────
 function triggerGameOver() {
   gameState = 'GAMEOVER';
+  saveHighScore();
   const modal = document.getElementById('modal-overlay');
   const introBox = document.getElementById('intro-box');
   const goBox = document.getElementById('gameover-box');
   introBox.style.display = 'none';
   goBox.style.display = 'block';
   modal.className = '';
-
-  const mm = String(Math.floor(gameTime / 60)).padStart(2, '0');
-  const ss = String(Math.floor(gameTime % 60)).padStart(2, '0');
 
   const accuracy = eventsResolved + eventsFailed > 0 ? Math.round(100 * eventsResolved / (eventsResolved + eventsFailed)) : 0;
   const timedOut = gameTime >= gameDuration;
@@ -2218,6 +2432,7 @@ function triggerGameOver() {
     <div class="go-stat"><span class="go-stat-label">ACCURACY</span><span class="go-stat-value">${accuracy}%</span></div>
     <div class="go-stat"><span class="go-stat-label">MISSION STATUS</span><span class="go-stat-value" style="color:${timedOut ? 'var(--color-accent)' : 'var(--color-alert)'}">${timedOut ? 'MISSION COMPLETE' : 'MISSION FAILED'}</span></div>
   `;
+  renderRecap();
 }
 
 // ─── RESET ────────────────────────────────────────────────────────────────────
@@ -2238,6 +2453,7 @@ function resetGame() {
   resolveEvent = null;
   resolveMatch = 'none';
   eventLog = [];
+  eventHistory = [];
   floatingTexts = [];
   lastSpawnTime = -99;
   cloudFrame = 0;
@@ -2538,6 +2754,18 @@ function init() {
 
   window._fwSetMode = function(sar) { forestWatchSARForced = sar; updateDataPanel(); };
   buildUpgradesPanel();
+  renderHighScores();
+
+  // Crisis panel close button
+  document.getElementById('crisis-close-btn').addEventListener('click', () => {
+    if (gameState === 'RESOLVING') {
+      gameState = 'PLAYING';
+      resolveEvent = null;
+      hideActionButtons();
+    }
+    selectedEvent = null;
+    updateDataPanel();
+  });
 
   // Duration button wiring
   document.querySelectorAll('.duration-btn').forEach(btn => {
@@ -2561,6 +2789,14 @@ function init() {
     document.getElementById('gameover-box').style.display = 'none';
     gameState = 'PLAYING';
     lastSpawnTime = -99;
+  };
+
+  document.getElementById('home-btn').onclick = () => {
+    resetGame();
+    document.getElementById('gameover-box').style.display = 'none';
+    document.getElementById('intro-box').style.display = 'block';
+    document.getElementById('modal-overlay').className = '';
+    renderHighScores();
   };
 
   // Escape / P key — toggle pause
