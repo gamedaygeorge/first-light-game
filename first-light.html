@@ -241,12 +241,13 @@ html, body {
 #modal-overlay {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   background: rgba(5,10,15,0.92); z-index: 100;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: flex-start; justify-content: center;
+  overflow-y: auto; padding: 24px 16px;
 }
 #modal-overlay.hidden { display: none; }
 .modal-box {
   background: #0a1420; border: 1px solid var(--bg-panel-border);
-  padding: 48px 64px; text-align: center; max-width: 600px;
+  padding: 48px 64px; text-align: center; max-width: 600px; width: 100%;
   box-shadow: 0 0 60px rgba(0,255,136,0.05);
 }
 .modal-title {
@@ -307,6 +308,7 @@ html, body {
 .hiscore-val  { color: var(--color-accent); font-weight: bold; }
 .hiscore-meta { color: #7788aa; font-size: 10px; text-align: right; }
 #tasking-overlay {
+  display: none !important;
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
   background: rgba(8,15,24,0.96); border: 1px solid var(--color-amber);
   padding: 20px 32px; text-align: center; z-index: 10; pointer-events: none;
@@ -357,6 +359,99 @@ html, body {
 .upgrade-btn { padding: 4px 10px; font-size: 10px; font-family: var(--font-mono); cursor: pointer; border: 1px solid #ffcc44; background: transparent; color: #ffcc44; letter-spacing: 1px; }
 .upgrade-btn:hover { background: rgba(255,204,68,0.1); }
 .upgrade-btn:disabled { opacity: 0.4; cursor: not-allowed; border-color: #445; color: #445; }
+#constellation-btn {
+  background: none; border: 1px solid #334455; color: #556677;
+  font-family: var(--font-mono); font-size: 10px; cursor: pointer;
+  padding: 1px 5px; border-radius: 2px; float: right; margin-top: -1px;
+  letter-spacing: 0;
+}
+#constellation-btn:hover { border-color: var(--color-info); color: var(--color-info); }
+#info-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(5,10,15,0.94); z-index: 150;
+  display: none; align-items: flex-start; justify-content: center;
+  overflow-y: auto; padding: 24px 16px;
+}
+#info-overlay.visible { display: flex; }
+#info-box {
+  background: #0a1420; border: 1px solid var(--bg-panel-border);
+  padding: 32px 40px; max-width: 720px; width: 100%;
+  box-shadow: 0 0 60px rgba(0,170,255,0.06);
+}
+.info-close {
+  float: right; background: none; border: none; color: #556677;
+  font-size: 18px; cursor: pointer; font-family: var(--font-mono);
+  padding: 0 4px; line-height: 1;
+}
+.info-close:hover { color: #ff6644; }
+.info-title { color: var(--color-info); font-size: 20px; letter-spacing: 3px; font-weight: bold; margin-bottom: 4px; }
+.info-subtitle { color: #7799bb; font-size: 11px; letter-spacing: 2px; margin-bottom: 24px; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+@media (max-width: 700px) { .info-grid { grid-template-columns: 1fr; } }
+.info-sat-card {
+  border: 1px solid var(--bg-panel-border); border-radius: 3px;
+  padding: 10px 12px; background: #0d1828;
+}
+.info-sat-name { font-size: 12px; font-weight: bold; margin-bottom: 3px; }
+.info-sat-meta { font-size: 10px; color: #7799bb; margin-bottom: 6px; line-height: 1.5; }
+.info-sat-desc { font-size: 10px; color: #99bbcc; line-height: 1.6; }
+.info-badge { display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 2px; margin-right: 4px; margin-bottom: 3px; }
+.info-badge.orbit { background: #0a2030; color: var(--color-info); border: 1px solid #1a4060; }
+.info-badge.cloud-ok { background: #0a1a10; color: #44cc88; border: 1px solid #1a4030; }
+.info-badge.cloud-no { background: #2a1000; color: #cc8844; border: 1px solid #553300; }
+.info-badge.night-ok { background: #0a0a2a; color: #8888ff; border: 1px solid #2a2a60; }
+.info-badge.night-no { background: #1a1a00; color: #aaaa44; border: 1px solid #444400; }
+.info-section-hdr { color: #aabbcc; font-size: 10px; letter-spacing: 3px; margin: 20px 0 10px; border-bottom: 1px solid #1a3040; padding-bottom: 4px; }
+.tutorial-highlight {
+  box-shadow: 0 0 0 2px #ffcc44, 0 0 16px rgba(255,204,68,0.4) !important;
+  animation: tut-pulse 1s ease-in-out infinite alternate;
+}
+@keyframes tut-pulse { from { box-shadow: 0 0 0 2px #ffcc44, 0 0 8px rgba(255,204,68,0.3); } to { box-shadow: 0 0 0 2px #ffcc44, 0 0 24px rgba(255,204,68,0.6); } }
+@media (max-width: 700px) {
+  html, body { font-size: 12px; }
+  #hud-bar { padding: 0 8px; height: 32px; }
+  #hud-left { display: none; }
+  #hud-center { font-size: 12px; }
+  #hud-right { font-size: 11px; letter-spacing: 0; }
+
+  /* Stack map above satellite panel */
+  #main-area { flex-direction: column; height: calc(100vh - 32px); overflow: hidden; }
+  #map-container { order: 1; width: 100%; aspect-ratio: 1120/852; flex: 0 0 auto; max-height: 48vh; }
+
+  /* Satellite panel: vertical scrollable list below the map */
+  #satellite-panel {
+    order: 2;
+    width: 100%; flex: 1;
+    display: block;
+    overflow-y: auto; overflow-x: hidden;
+    border-right: none; border-top: 1px solid var(--bg-panel-border);
+    padding: 6px 8px;
+  }
+  #satellite-panel h3 { display: block; padding: 4px 0 6px; }
+  .sat-card { min-width: auto; flex-shrink: 1; margin-bottom: 6px; }
+
+  /* Crisis panel: full-screen overlay so it never fights the sat panel */
+  #crisis-panel {
+    position: fixed !important;
+    top: 32px !important; bottom: 0 !important;
+    left: 0 !important; right: 0 !important;
+    width: 100% !important; max-height: none !important;
+    border-radius: 0; border: none;
+    border-top: 1px solid var(--bg-panel-border);
+  }
+
+  #map-side-panels { display: none; }
+  #tasking-overlay { display: none !important; }
+  #tutorial-hint { bottom: 10px; min-width: 240px; max-width: calc(100vw - 32px); }
+  .modal-box { padding: 24px 20px; }
+  .modal-title { font-size: 32px; }
+  #gameover-box { padding: 20px 16px; }
+  .go-btn-row { flex-direction: column; align-items: center; }
+
+  /* Satellite rec items: larger tap targets on mobile */
+  .sat-rec-item { padding: 4px 0; }
+  .sat-rec-tap-btn { padding: 6px 8px !important; font-size: 11px !important; }
+}
 </style>
 </head>
 <body>
@@ -364,13 +459,13 @@ html, body {
 <div id="hud-bar">
   <div id="hud-left">FIRST LIGHT &nbsp;|&nbsp; DIAMOND SKY MISSION CONTROL</div>
   <div id="hud-center">T+00:00</div>
-  <div id="hud-right">SCORE: <span id="hud-score">00000</span> &nbsp; STREAK: <span id="hud-streak">×1</span> &nbsp; RESOLVED: <span id="hud-events">0</span> &nbsp; CR: <span id="hud-credits" style="color:#ffcc44">0</span> &nbsp;<span id="hud-active-warn" style="display:none;color:#ff6644">⚠ <span id="hud-active-count">0</span> ACTIVE</span>&nbsp;<span style="color:#334455;font-size:10px">ESC=PAUSE</span><span id="hud-phase" style="margin-left:8px"></span></div>
+  <div id="hud-right">SCORE: <span id="hud-score">00000</span> &nbsp; STREAK: <span id="hud-streak">×1</span> &nbsp; RESOLVED: <span id="hud-events">0</span> &nbsp; CR: <span id="hud-credits" style="color:#ffcc44">0</span> &nbsp;<span id="hud-active-warn" style="display:none;color:#ff6644">⚠ <span id="hud-active-count">0</span> ACTIVE</span>&nbsp;<span id="hud-easy-mode" style="display:none;color:#ffcc44;font-size:10px">[EASY MODE]</span>&nbsp;<span style="color:#334455;font-size:10px">ESC=PAUSE</span><span id="hud-phase" style="margin-left:8px"></span></div>
 </div>
 <div id="space-weather-bar" style="display:none;"></div>
 
 <div id="main-area">
   <div id="satellite-panel">
-    <h3>CONSTELLATION</h3>
+    <h3>CONSTELLATION <button id="constellation-btn" onclick="openInfoOverlay()">?</button></h3>
     <div id="sat-cards"></div>
   </div>
 
@@ -390,6 +485,14 @@ html, body {
       <div class="pause-title">&#9724; MISSION PAUSED</div>
       <button class="pause-btn" id="pause-resume-btn">RESUME MISSION</button>
       <button class="pause-btn end" id="pause-end-btn">END MISSION</button>
+    </div>
+    <div id="tutorial-hint" style="display:none; position:absolute; bottom:130px; left:50%; transform:translateX(-50%); z-index:25; background:rgba(10,16,26,0.97); border:1px solid #ffcc44; border-radius:4px; padding:12px 16px; min-width:280px; max-width:360px; text-align:center; box-shadow:0 0 30px rgba(255,204,68,0.2);">
+      <div style="color:#ffcc44;font-size:9px;letter-spacing:3px;margin-bottom:6px">MISSION CONTROL TUTORIAL</div>
+      <div id="tutorial-text" style="color:#e0e8f0;font-size:12px;line-height:1.6;margin-bottom:10px"></div>
+      <div style="display:flex;justify-content:center;gap:10px">
+        <div id="tutorial-step-indicator" style="color:#7799bb;font-size:10px;line-height:28px"></div>
+        <button id="tutorial-skip-btn" style="padding:4px 14px;background:transparent;border:1px solid #556677;color:#7799bb;font-family:monospace;font-size:10px;cursor:pointer;letter-spacing:1px;">SKIP TUTORIAL</button>
+      </div>
     </div>
 
     <!-- Floating crisis panel — appears on event selection, click outside to close -->
@@ -412,6 +515,7 @@ html, body {
               Select a satellite from the left panel to task.<br>
               <span>OPTIMAL:</span> primary sensor &nbsp; <span>DEGRADED:</span> acceptable sensor
             </div>
+            <div id="auto-task-wrap" style="display:none;margin:8px 0 2px 0;"></div>
             <canvas id="product-canvas" width="320" height="240" style="display:none"></canvas>
             <div id="ei-metrics" style="display:none">
               <div id="fw-active-mode" style="display:none;font-size:10px;color:#44dd88;padding:3px 0;letter-spacing:1px;"></div>
@@ -473,7 +577,26 @@ html, body {
       <button class="duration-btn selected" data-dur="600">STANDARD<br><span>10 MIN</span></button>
       <button class="duration-btn" data-dur="900">MARATHON<br><span>15 MIN</span></button>
     </div>
+    <div style="margin:16px 0 6px;color:#aabbcc;font-size:10px;letter-spacing:2px">DIFFICULTY</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px">
+      <button class="duration-btn selected" data-diff="easy">EASY MODE<br><span>No cooldowns</span></button>
+      <button class="duration-btn" data-diff="standard">STANDARD<br><span>Cooldowns &amp; limits</span></button>
+    </div>
+    <div style="margin:10px 0 6px;color:#aabbcc;font-size:10px;letter-spacing:2px">CLOUD COVER</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px">
+      <button class="duration-btn selected" data-cloud="low">LOW<br><span>Clear skies</span></button>
+      <button class="duration-btn" data-cloud="normal">NORMAL<br><span>Realistic</span></button>
+    </div>
+    <div style="margin:6px 0 18px 0;">
+      <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:#aabbcc;letter-spacing:1px;">
+        <input type="checkbox" id="auto-task-check" checked style="accent-color:#00ff88;width:14px;height:14px;cursor:pointer;">
+        AUTO-TASK ASSIST — auto-select best satellite when you click an event
+      </label>
+    </div>
     <div id="hiscore-section"></div>
+    <div style="margin-bottom:16px">
+      <button onclick="openInfoOverlay()" style="background:none;border:none;color:#5577aa;font-family:var(--font-mono);font-size:11px;cursor:pointer;letter-spacing:1px;text-decoration:underline;padding:0">&#9432; CONSTELLATION GUIDE — what each satellite can see</button>
+    </div>
     <div class="modal-attr">A <a href="https://diamondsky.au" target="_blank" style="color:#aabbdd;text-decoration:underline">Diamond Sky</a> portfolio piece — diamondsky.au</div>
     <button class="modal-btn" id="start-btn">INITIATE MISSION</button>
   </div>
@@ -481,6 +604,10 @@ html, body {
     <div class="modal-title" style="font-size:32px;margin-bottom:4px;text-align:center">MISSION CONCLUDED</div>
     <div class="modal-subtitle" style="margin-bottom:16px;text-align:center">END OF MISSION REPORT</div>
     <div class="gameover-stats" id="go-stats"></div>
+    <div id="standard-nudge" style="display:none;margin:0 0 16px 0;padding:12px 16px;border:1px solid #ffcc44;border-radius:3px;background:rgba(30,22,0,0.8);text-align:center;">
+      <div style="color:#ffcc44;font-size:10px;letter-spacing:2px;margin-bottom:4px">READY FOR A CHALLENGE?</div>
+      <div style="color:#ccd8e8;font-size:12px;line-height:1.6">You're getting the hang of this. Try <strong style="color:#ffcc44">Standard Mode</strong> for satellite cooldowns, duty cycles, and the full mission control experience.</div>
+    </div>
     <div class="go-btn-row">
       <button class="modal-btn" id="restart-btn">PLAY AGAIN</button>
       <button class="modal-btn secondary" id="home-btn">BACK TO HOME</button>
@@ -488,6 +615,28 @@ html, body {
     <div id="recap-section">
       <div class="recap-section-hdr">MISSION RECAP</div>
       <div id="recap-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Constellation info overlay — pausess game clock while open -->
+<div id="info-overlay">
+  <div id="info-box">
+    <button class="info-close" onclick="closeInfoOverlay()">&#x2715;</button>
+    <div class="info-title">CONSTELLATION GUIDE</div>
+    <div class="info-subtitle">DIAMOND SKY MISSION CONTROL — SATELLITE CAPABILITIES</div>
+    <div id="info-grid-content" class="info-grid"></div>
+    <div class="info-section-hdr">KEY CONCEPTS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:10px;color:#99bbcc;line-height:1.7">
+      <div><span style="color:#e0e8f0;font-weight:bold">SAR (Synthetic Aperture Radar)</span><br>Active sensor — transmits its own signal. Works day or night, through cloud and smoke. Ideal for floods, subsidence, ice monitoring.</div>
+      <div><span style="color:#e0e8f0;font-weight:bold">Optical / Thermal IR</span><br>Passive sensors — collect reflected or emitted energy. Optical blocked by cloud; thermal blocked by thick cloud. High resolution, vivid imagery.</div>
+      <div><span style="color:#e0e8f0;font-weight:bold">Hyperspectral</span><br>Hundreds of narrow spectral bands. Can detect specific gases (CH₄, CO₂, SO₂) by their chemical fingerprint. Partial cloud penetration.</div>
+      <div><span style="color:#e0e8f0;font-weight:bold">GEO vs LEO</span><br>GEO satellites sit at 36,000 km — fixed position, continuous coverage, near-instant tasking. LEO orbits at 400–2000 km — higher resolution but must wait for the next overpass (minutes to hours).</div>
+      <div><span style="color:#e0e8f0;font-weight:bold">Revisit Time</span><br>How often a satellite can image the same point. LEO revisit depends on orbit inclination and swath width. Constellation design trades revisit against resolution.</div>
+      <div><span style="color:#e0e8f0;font-weight:bold">L1 Lagrange Point</span><br>Gravitational balance point ~1.5M km sunward. A satellite here stays between Earth and Sun perpetually — ideal for solar wind monitoring and early space weather warning.</div>
+    </div>
+    <div style="text-align:center;margin-top:24px">
+      <button class="modal-btn secondary" onclick="closeInfoOverlay()" style="font-size:12px;padding:10px 32px">CLOSE</button>
     </div>
   </div>
 </div>
@@ -687,6 +836,12 @@ const CONTINENTS = [
 ];
 
 // ─── GAME STATE ──────────────────────────────────────────────────────────────
+let easyMode = true;
+let cloudMode = 'low';  // 'low' | 'normal'
+let autoTaskEnabled = true;
+let tutorialStep = 0;   // 0=inactive, 1-5=active steps, 6=done
+let tutorialEventId = null;
+let upgradeHintShown = false;
 let gameState = 'INTRO';
 let gameTime = 0;
 let lastTimestamp = 0;
@@ -955,6 +1110,11 @@ function drawEvents(t) {
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, MAP_W, MAP_H);
 
+  // Scale markers and text relative to canvas display size so they stay readable on mobile
+  const dispW = canvas.getBoundingClientRect().width || MAP_W;
+  const pxRatio = MAP_W / dispW; // canvas px per screen px
+  const ms = Math.max(1, pxRatio); // marker scale factor
+
   // Night hemisphere overlay
   // Normalise to [-180,180] before mapping to canvas pixels to prevent out-of-bounds rendering
   const normLon = lon => { let l = ((lon % 360) + 360) % 360; return l > 180 ? l - 360 : l; };
@@ -1129,15 +1289,15 @@ function drawEvents(t) {
     let pulseRate = isObs ? 1 : (urgFrac > 0.8 ? 4 : urgFrac > 0.5 ? 2 : 1);
     const pulse = Math.sin(t * pulseRate * 0.1) * 4;
 
-    // Outer ring
+    // Outer ring — scale radius with display ratio
     ctx.save();
     ctx.shadowBlur = 16;
     ctx.shadowColor = baseColor;
     ctx.strokeStyle = baseColor;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.5 * ms;
     ctx.globalAlpha = 0.6 + Math.sin(t * pulseRate * 0.1) * 0.3;
     ctx.beginPath();
-    ctx.arc(x, y, 14 + pulse, 0, Math.PI * 2);
+    ctx.arc(x, y, (14 + pulse) * ms, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
 
@@ -1183,25 +1343,26 @@ function drawEvents(t) {
     ctx.shadowColor = baseColor;
     ctx.fillStyle = baseColor;
     ctx.beginPath();
-    ctx.arc(x, y, isSelected ? 7 : 5, 0, Math.PI * 2);
+    ctx.arc(x, y, (isSelected ? 7 : 5) * ms, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
     // Selected ring
     if (isSelected) {
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.5 * ms;
       ctx.beginPath();
-      ctx.arc(x, y, 24, 0, Math.PI * 2);
+      ctx.arc(x, y, 24 * ms, 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    // Label — flip below marker if near top, left-align if near right edge
+    // Label — scale font with display ratio so it stays readable on mobile
     ctx.fillStyle = baseColor;
-    ctx.font = '11px Courier New';
+    const labelFontPx = Math.round(11 * ms);
+    ctx.font = `bold ${labelFontPx}px Courier New`;
     const shortTitle = ev.type.replace(/_/g, ' ').substring(0, 16);
     const labelText = isDataReady ? '▶ ' + shortTitle : shortTitle;
-    const labelY = y < 50 ? y + 42 : y - 28;
+    const labelY = y < 50 ? y + 42 + ms * 4 : y - 28 - ms * 4;
     const labelX = Math.min(x, MAP_W - 90);
     ctx.textAlign = x > MAP_W - 90 ? 'right' : 'center';
     ctx.fillText(labelText, labelX, labelY);
@@ -1583,7 +1744,9 @@ function spawnEvent() {
   const maxEvents = gameTime < 60 ? 1 : gameTime < 180 ? 2 : gameTime < 360 ? 3 : 4;
   if (activeEvents.length >= maxEvents) return;
 
-  const cloudProb = Math.min(0.6, 0.2 + (gameTime / (25 * 60)) * 0.4);
+  const cloudProb = cloudMode === 'low'
+    ? Math.min(0.2, 0.05 + (gameTime / (25 * 60)) * 0.15)
+    : Math.min(0.6, 0.2 + (gameTime / (25 * 60)) * 0.4);
   // Force first event to be an observation so new players learn the loop with no penalty
   const isFirstEvent = eventsResolved === 0 && eventsFailed === 0 && activeEvents.length === 0;
   const rng = Math.random();
@@ -1624,6 +1787,17 @@ function spawnEvent() {
     seed: Math.random() * 1000,
   };
   activeEvents.push(newEv);
+
+  // Tutorial: trigger step 1 on first event (skip on mobile — auto-task guides players instead)
+  if (tutorialStep === 0) {
+    if (window.innerWidth <= 700) {
+      tutorialStep = 6; // skip tutorial on mobile
+    } else {
+      tutorialStep = 1;
+      tutorialEventId = newEv.id;
+      showTutorialHint(1);
+    }
+  }
 
   // Announce spawn with floating text (crisis events only)
   if (def.category !== 'observation' && gameState === 'PLAYING') {
@@ -1687,6 +1861,42 @@ function setupEventCanvas() {
       }
     }
   });
+
+  // Touch support for mobile
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (gameState === 'INTRO' || gameState === 'GAMEOVER') return;
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = MAP_W / rect.width;
+    const scaleY = MAP_H / rect.height;
+    const mx = (touch.clientX - rect.left) * scaleX;
+    const my = (touch.clientY - rect.top) * scaleY;
+    let best = null, bestDist = 55;
+    for (const ev of activeEvents) {
+      const ex = lonToX(ev.lon), ey = latToY(ev.lat);
+      const dist = Math.hypot(mx - ex, my - ey);
+      if (dist < bestDist) { bestDist = dist; best = ev; }
+    }
+    if (best) {
+      if (gameState === 'RESOLVING' && resolveEvent && best.id !== resolveEvent.id) {
+        gameState = 'PLAYING'; resolveEvent = null; hideActionButtons();
+      }
+      selectedEvent = best;
+      if (best.status === 'DATA_READY') {
+        resolveEvent = best;
+        resolveMatch = best.taskingMatch || 'wrong';
+        gameState = 'RESOLVING';
+      }
+      updateDataPanel();
+    } else {
+      if (selectedEvent) {
+        if (gameState === 'RESOLVING') { gameState = 'PLAYING'; resolveEvent = null; hideActionButtons(); }
+        selectedEvent = null;
+        updateDataPanel();
+      }
+    }
+  }, { passive: false });
 }
 
 // ─── SAT CLICK ────────────────────────────────────────────────────────────────
@@ -1740,10 +1950,13 @@ function onSatClick(si) {
   state.status = 'TASKING';
   state.taskProgress = 0;
   state.taskDuration = delay;
-  state.dutyCycle = Math.min(100, (state.dutyCycle || 0) + 22);
+  state.dutyCycle = easyMode ? 0 : Math.min(100, (state.dutyCycle || 0) + 22);
 
   // Update event status
   selectedEvent.status = 'ACQUIRING';
+  if (tutorialStep === 2 && selectedEvent.id === tutorialEventId) {
+    advanceTutorial(3);
+  }
 
   // Push to background taskings
   pendingTaskings.push({
@@ -1761,6 +1974,10 @@ function onSatClick(si) {
   forestWatchSARForced = false; // reset override after use
   updateDataPanel();
   updateSatCards();
+
+  // Close crisis panel after tasking so player can see the map and other events
+  selectedEvent = null;
+  updateDataPanel();
 }
 
 // ─── DATA PANEL ──────────────────────────────────────────────────────────────
@@ -1781,6 +1998,12 @@ function updateDataPanel() {
   }
 
   if (crisisPanel) crisisPanel.classList.add('visible');
+  if (tutorialStep === 1 && selectedEvent && selectedEvent.id === tutorialEventId) {
+    advanceTutorial(2);
+  }
+  if (tutorialStep === 4 && selectedEvent && selectedEvent.id === tutorialEventId && selectedEvent.status === 'DATA_READY') {
+    advanceTutorial(5);
+  }
   if (placeholder) placeholder.style.display = 'none';
   if (content) content.style.display = 'block';
 
@@ -1798,15 +2021,28 @@ function updateDataPanel() {
   // Satellite recommendations
   const recsDiv = document.getElementById('ei-sat-recs');
   recsDiv.innerHTML = '';
-  SATELLITES.forEach(sat => {
+  SATELLITES.forEach((sat, si) => {
     const isPrimary = def.primary.includes(sat.id);
     const isAcceptable = !isPrimary && def.acceptable.includes(sat.id);
     if (!isPrimary && !isAcceptable) return;
+    const state = satState[si];
+    const available = state.status === 'NOMINAL' && (state.dutyCycle || 0) < 100
+      && !pendingTaskings.some(t => t.eventId === ev.id);
     const item = document.createElement('div');
     item.className = 'sat-rec-item';
     const icon = isPrimary ? '✓' : '~';
     const iconClass = isPrimary ? 'primary' : 'acceptable';
-    item.innerHTML = `<span class="match-icon ${iconClass}">${icon}</span><span style="color:${SATELLITES.find(s=>s.id===sat.id).color};font-size:10px">${sat.id}</span><span style="color:#99aabb;font-size:9px;margin-left:4px">${sat.sensor}</span>`;
+    const statusNote = state.status === 'COOLDOWN' ? ' <span style="color:#ff4444;font-size:9px">COOLDOWN</span>'
+      : state.status === 'TASKING' ? ' <span style="color:#ffaa00;font-size:9px">TASKING</span>' : '';
+    if (available && ev.status === 'ACTIVE' && !pendingTaskings.some(t => t.eventId === ev.id)) {
+      item.innerHTML = `<span class="match-icon ${iconClass}">${icon}</span>
+        <button class="sat-rec-tap-btn" onclick="taskSatById(${si})"
+          style="background:none;border:1px solid #243650;border-radius:2px;color:${sat.color};font-size:10px;font-family:var(--font-mono);cursor:pointer;padding:2px 6px;letter-spacing:0.5px;">
+          ${sat.id} ▶</button>
+        <span style="color:#99aabb;font-size:9px;margin-left:4px">${sat.sensor}</span>`;
+    } else {
+      item.innerHTML = `<span class="match-icon ${iconClass}">${icon}</span><span style="color:${sat.color};font-size:10px">${sat.id}</span><span style="color:#99aabb;font-size:9px;margin-left:4px">${sat.sensor}</span>${statusNote}`;
+    }
     recsDiv.appendChild(item);
   });
 
@@ -1861,10 +2097,11 @@ function updateDataPanel() {
       ctx.fillStyle = '#ff3333';
       ctx.font = 'bold 18px Courier New';
       ctx.textAlign = 'center';
-      ctx.fillText(resolveMatch === 'blocked' ? 'CLOUD BLOCKED' : 'NO USABLE DATA', 160, 115);
+      const _isNightBlock = resolveMatch === 'blocked' && resolveEvent && resolveEvent.nightTime && !resolveEvent.cloudy;
+      ctx.fillText(resolveMatch === 'blocked' ? (_isNightBlock ? 'NIGHT BLOCKED' : 'CLOUD BLOCKED') : 'NO USABLE DATA', 160, 115);
       ctx.font = '11px Courier New';
       ctx.fillStyle = '#aa3333';
-      ctx.fillText(resolveMatch === 'blocked' ? 'OPTICAL SENSOR OBSTRUCTED' : 'WRONG SENSOR — NO RETURN', 160, 135);
+      ctx.fillText(resolveMatch === 'blocked' ? (_isNightBlock ? 'OPTICAL SENSOR OFFLINE AT NIGHT' : 'OPTICAL SENSOR OBSTRUCTED') : 'WRONG SENSOR — NO RETURN', 160, 135);
       ctx.textAlign = 'left';
     }
 
@@ -1891,7 +2128,7 @@ function updateDataPanel() {
     const matchResult = document.getElementById('match-result');
     if (resolveMatch === 'optimal') { matchResult.className = 'match-result optimal'; matchResult.textContent = 'SATELLITE MATCH: OPTIMAL'; }
     else if (resolveMatch === 'acceptable') { matchResult.className = 'match-result degraded'; matchResult.textContent = 'SATELLITE MATCH: DEGRADED'; }
-    else if (resolveMatch === 'blocked') { matchResult.className = 'match-result blocked'; matchResult.textContent = 'SATELLITE MATCH: CLOUD BLOCKED'; }
+    else if (resolveMatch === 'blocked') { matchResult.className = 'match-result blocked'; matchResult.textContent = (resolveEvent && resolveEvent.nightTime && !resolveEvent.cloudy) ? 'SATELLITE MATCH: NIGHT BLOCKED' : 'SATELLITE MATCH: CLOUD BLOCKED'; }
     else { matchResult.className = 'match-result blocked'; matchResult.textContent = 'NO USABLE DATA — WRONG SENSOR'; }
 
     // Flavour text for observation events
@@ -1935,7 +2172,7 @@ function updateDataPanel() {
       // Cloud-blocked: only a partial report action
       const hdr = document.createElement('div');
       hdr.style.cssText = 'font-size:10px;color:#ff6644;margin-bottom:6px;letter-spacing:1px;';
-      hdr.textContent = '⚠ CLOUD BLOCKED — PARTIAL DATA ONLY';
+      hdr.textContent = (resolveEvent && resolveEvent.nightTime && !resolveEvent.cloudy) ? '⚠ NIGHT BLOCKED — PARTIAL DATA ONLY' : '⚠ CLOUD BLOCKED — PARTIAL DATA ONLY';
       actionButtons.appendChild(hdr);
       const partialBtn = document.createElement('button');
       partialBtn.className = 'action-btn';
@@ -1991,6 +2228,8 @@ function updateDataPanel() {
     // Show ACQUIRING status if this event is being acquired
     const acquiringTask = pendingTaskings.find(t => t.eventId === ev.id);
     if (acquiringTask) {
+      const _atw = document.getElementById('auto-task-wrap');
+      if (_atw) _atw.style.display = 'none';
       instructionDiv.style.display = 'block';
       const aSat = SATELLITES[acquiringTask.satIndex];
       instructionDiv.innerHTML = `<span style="color:var(--color-amber)">◉ TASKING ${aSat.id}</span><br>
@@ -2006,6 +2245,30 @@ function updateDataPanel() {
     productCanvas.style.display = 'none';
     metricsDiv.style.display = 'none';
     hideActionButtons();
+
+    // Auto-task button
+    const atWrap = document.getElementById('auto-task-wrap');
+    if (atWrap) {
+      if (autoTaskEnabled) {
+        const opts = getAutoTaskOptions(ev);
+        const n = opts.length;
+        const bestMatch = n > 0 ? opts[0].match : null;
+        const matchColour = bestMatch === 'optimal' ? '#00ff88' : bestMatch === 'acceptable' ? '#ffaa00' : '#ff6644';
+        atWrap.style.display = 'block';
+        // Determine why N=0: satellites cooling, or conditions blocking?
+        const anyNominal = SATELLITES.some((sat, si) => satState[si].status === 'NOMINAL' && (satState[si].dutyCycle||0) < 100 && sat.id !== 'SOL-WATCH');
+        const noReason = n === 0 ? (anyNominal ? 'SENSORS BLOCKED BY CONDITIONS' : 'ALL SATELLITES COOLING DOWN') : null;
+        atWrap.innerHTML = n > 0
+          ? `<button onclick="autoTaskBest()" style="width:100%;padding:7px 10px;background:#0a1a10;border:1px solid ${matchColour};color:${matchColour};font-family:var(--font-mono);font-size:11px;cursor:pointer;letter-spacing:1px;text-align:left;">
+               ⚡ AUTO-TASK (${n}) &nbsp;<span style="font-size:9px;opacity:0.8">best: ${opts[0].sat.id} — ${bestMatch.toUpperCase()}</span>
+             </button>`
+          : `<div style="width:100%;padding:6px 8px;background:#0a0a0a;border:1px solid #334;color:#556;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;">
+               AUTO-TASK (0) — ${noReason}
+             </div>`;
+      } else {
+        atWrap.style.display = 'none';
+      }
+    }
 
     // FOREST-WATCH sensor mode toggle
     const fwSatIdx = SATELLITES.findIndex(s => s.id === 'FOREST-WATCH');
@@ -2037,6 +2300,9 @@ function hideActionButtons() {
 // ─── MITIGATION ───────────────────────────────────────────────────────────────
 function onMitigationClick(mitigation, ev) {
   if (gameState !== 'RESOLVING') return;
+  if (tutorialStep >= 1 && tutorialStep < 6 && ev.id === tutorialEventId) {
+    advanceTutorial(6);
+  }
 
   const def = EVENT_TYPES[ev.type];
   const elapsed = gameTime - ev.spawnTime;
@@ -2180,7 +2446,8 @@ function onMitigationClick(mitigation, ev) {
 
   // Record for end-of-game recap
   const recOutcome = resolveMatch === 'blocked' ? 'blocked' : resolveMatch === 'acceptable' ? 'degraded' : 'resolved';
-  eventHistory.push({ type:ev.type, title:ev.title, category:ev.category, region:ev.region, outcome:recOutcome, satellite:ev.taskingSatId||null, mitigation:mitigation.label, matchQuality:resolveMatch, scoreEarned:total });
+  const blockReason = resolveMatch === 'blocked' ? (ev.nightTime && !ev.cloudy ? 'night' : 'cloud') : null;
+  eventHistory.push({ type:ev.type, title:ev.title, category:ev.category, region:ev.region, outcome:recOutcome, satellite:ev.taskingSatId||null, mitigation:mitigation.label, matchQuality:resolveMatch, scoreEarned:total, blockReason });
 
   // Remove event
   activeEvents = activeEvents.filter(e => e.id !== ev.id);
@@ -2235,23 +2502,18 @@ function updateHUD() {
     }
   }
 
+  // Easy mode label
+  const easyEl = document.getElementById('hud-easy-mode');
+  if (easyEl) easyEl.style.display = easyMode ? 'inline' : 'none';
+
   // Credits display
   const credEl = document.getElementById('credits-display');
   if (credEl) credEl.textContent = credits + ' CR';
   const hudCredEl = document.getElementById('hud-credits');
   if (hudCredEl) hudCredEl.textContent = credits;
 
-  // Day/Night phase indicator
   const phaseEl = document.getElementById('hud-phase');
-  if (phaseEl) {
-    if (isNightLon(0)) {
-      phaseEl.textContent = '◑ NIGHT';
-      phaseEl.style.color = '#8899cc';
-    } else {
-      phaseEl.textContent = '☀ DAY';
-      phaseEl.style.color = '#ffdd88';
-    }
-  }
+  if (phaseEl) phaseEl.textContent = '';
 
   // Space weather warning bar
   const swBar = document.getElementById('space-weather-bar');
@@ -2261,8 +2523,17 @@ function updateHUD() {
   if (warnings.length > 0) {
     swBar.textContent = warnings.join('   //   ');
     swBar.style.display = 'block';
+    // On mobile: push crisis panel below the warning bar so close button stays accessible
+    if (window.innerWidth <= 700) {
+      const cp = document.getElementById('crisis-panel');
+      if (cp) cp.style.top = '57px';
+    }
   } else {
     swBar.style.display = 'none';
+    if (window.innerWidth <= 700) {
+      const cp = document.getElementById('crisis-panel');
+      if (cp) cp.style.top = '';
+    }
   }
 }
 
@@ -2393,7 +2664,7 @@ function renderRecap() {
     if (h.outcome === 'escalated') resp = '<span style="color:#ff4444">NOT RESOLVED — escalated without tasking</span>';
     else if (h.outcome === 'expired')   resp = '<span style="color:#ff6644">EXPIRED mid-acquisition — satellite duty cycle wasted</span>';
     else if (h.outcome === 'wrong')     resp = `<span style="color:#ff6644">${h.satellite||'?'} → No usable data (wrong sensor type)</span>`;
-    else if (h.outcome === 'blocked')   resp = `<span style="color:#ff8844">${h.satellite||'?'} → Cloud blocked — partial report only</span>`;
+    else if (h.outcome === 'blocked')   resp = `<span style="color:#ff8844">${h.satellite||'?'} → ${h.blockReason === 'night' ? 'Night blocked' : 'Cloud blocked'} — partial report only</span>`;
     else {
       const ql = h.matchQuality==='optimal' ? `<span style="color:#00ff88">OPTIMAL</span>` : `<span style="color:#ffaa00">DEGRADED</span>`;
       resp = `${h.satellite||'?'} → ${h.mitigation} ${ql}`;
@@ -2433,6 +2704,10 @@ function triggerGameOver() {
     <div class="go-stat"><span class="go-stat-label">MISSION STATUS</span><span class="go-stat-value" style="color:${timedOut ? 'var(--color-accent)' : 'var(--color-alert)'}">${timedOut ? 'MISSION COMPLETE' : 'MISSION FAILED'}</span></div>
   `;
   renderRecap();
+
+  // Nudge easy-mode players toward standard mode once they've got the hang of it
+  const nudge = document.getElementById('standard-nudge');
+  if (nudge) nudge.style.display = (easyMode && score >= 400 && eventsResolved >= 3) ? 'block' : 'none';
 }
 
 // ─── RESET ────────────────────────────────────────────────────────────────────
@@ -2457,6 +2732,9 @@ function resetGame() {
   floatingTexts = [];
   lastSpawnTime = -99;
   cloudFrame = 0;
+  tutorialStep = 0;
+  tutorialEventId = null;
+  upgradeHintShown = false;
 
   satState = SATELLITES.map(s => ({
     id: s.id, status: 'NOMINAL', cooldown: 0, taskProgress: 0, taskDuration: 0,
@@ -2487,6 +2765,8 @@ function resetGame() {
 
 // ─── UPGRADES ────────────────────────────────────────────────────────────────
 function buildUpgradesPanel() {
+  const upgradesSection = document.getElementById('upgrades-section');
+  if (upgradesSection) upgradesSection.style.display = easyMode ? 'none' : 'block';
   const body = document.getElementById('upgrades-body');
   if (!body) return;
   body.innerHTML = '';
@@ -2518,6 +2798,40 @@ function buildUpgradesPanel() {
     `;
     body.appendChild(card);
   });
+
+  // Show upgrade tutorial hint once when player can first afford something (non-easy mode only)
+  if (!easyMode && !upgradeHintShown && gameState === 'PLAYING') {
+    const canAffordAny = UPGRADE_DEFS.some(def => {
+      const lvl = upgrades[def.id] || 0;
+      const isMaxed = !def.repeatable && lvl >= def.levels.length;
+      if (isMaxed) return false;
+      const levelDef = def.levels[Math.min(def.repeatable ? 0 : lvl, def.levels.length - 1)];
+      return credits >= levelDef.cost;
+    });
+    if (canAffordAny) {
+      upgradeHintShown = true;
+      showUpgradeHint();
+    }
+  }
+}
+
+function showUpgradeHint() {
+  const hint = document.getElementById('tutorial-hint');
+  const text = document.getElementById('tutorial-text');
+  const stepInd = document.getElementById('tutorial-step-indicator');
+  if (!hint || !text) return;
+  document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+  text.textContent = 'You have enough credits to buy an upgrade.\n\nCheck the UPGRADES panel at the bottom-left of the map — faster recharge, priority uplink, or an emergency recharge.';
+  if (stepInd) stepInd.textContent = 'UPGRADE AVAILABLE';
+  hint.style.display = 'block';
+  // Highlight the upgrades section
+  const upg = document.getElementById('upgrades-section');
+  if (upg) upg.classList.add('tutorial-highlight');
+  // Auto-dismiss after 8 seconds
+  setTimeout(() => {
+    if (hint) hint.style.display = 'none';
+    document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+  }, 8000);
 }
 
 function toggleUpgrades() {
@@ -2603,7 +2917,7 @@ function gameLoop(timestamp) {
     updateCloudCells();
   }
 
-  if (gameState === 'PLAYING' || gameState === 'RESOLVING') {
+  if ((gameState === 'PLAYING' || gameState === 'RESOLVING') && !infoOverlayOpen) {
     gameTime += dt;
     sunLon = -90 + (gameTime * 3) % 360;
     if (sunLon > 180) sunLon -= 360;
@@ -2612,11 +2926,17 @@ function gameLoop(timestamp) {
     const rechargeRate = 1 + (upgrades.rechargeBoost * 0.25);
     satState.forEach((state, si) => {
       if (state.status === 'COOLDOWN') {
-        state.cooldown -= dt * rechargeRate;
-        if (state.cooldown <= 0) {
+        if (easyMode) {
           state.cooldown = 0;
           state.status = 'NOMINAL';
           state.extendedBlackout = false;
+        } else {
+          state.cooldown -= dt * rechargeRate;
+          if (state.cooldown <= 0) {
+            state.cooldown = 0;
+            state.status = 'NOMINAL';
+            state.extendedBlackout = false;
+          }
         }
       }
     });
@@ -2672,6 +2992,9 @@ function gameLoop(timestamp) {
           ev.taskingSatId  = task.satId;
           ev.forestWatchSAR = task.forestWatchSAR;
           ev.taskingSatIndex = task.satIndex;
+          if (tutorialStep === 3 && ev.id === tutorialEventId) {
+            advanceTutorial(4);
+          }
           // Auto-enter resolving if this event is already selected — removes a click
           if (selectedEvent && selectedEvent.id === ev.id && gameState !== 'GAMEOVER') {
             resolveEvent = ev;
@@ -2680,14 +3003,27 @@ function gameLoop(timestamp) {
             floatingTexts.push({ x: lonToX(ev.lon), y: latToY(ev.lat) - 20, text: '▶ DATA RECEIVED', color: '#00eeff', age: 0 });
           } else {
             floatingTexts.push({ x: lonToX(ev.lon), y: latToY(ev.lat) - 20, text: '▶ DATA READY', color: '#00eeff', age: 0 });
+            // Auto-reopen crisis panel in RESOLVING state so mitigations are immediately visible
+            if (gameState !== 'GAMEOVER') {
+              selectedEvent = ev;
+              resolveEvent = ev;
+              resolveMatch = task.match;
+              gameState = 'RESOLVING';
+              updateDataPanel();
+            }
           }
         }
         // Apply cooldown to satellite
         const sat = SATELLITES[task.satIndex];
-        const dcPenalty = (satState[task.satIndex].dutyCycle || 0);
-        const coolMulti = dcPenalty > 80 ? 1.5 : dcPenalty > 60 ? 1.2 : 1.0;
-        satState[task.satIndex].status  = 'COOLDOWN';
-        satState[task.satIndex].cooldown = sat.cooldownMax * coolMulti;
+        if (easyMode) {
+          satState[task.satIndex].status  = 'NOMINAL';
+          satState[task.satIndex].cooldown = 0;
+        } else {
+          const dcPenalty = (satState[task.satIndex].dutyCycle || 0);
+          const coolMulti = dcPenalty > 80 ? 1.5 : dcPenalty > 60 ? 1.2 : 1.0;
+          satState[task.satIndex].status  = 'COOLDOWN';
+          satState[task.satIndex].cooldown = sat.cooldownMax * coolMulti;
+        }
         pendingTaskings.splice(ti, 1);
         if (pendingTaskings.length === 0) document.getElementById('tasking-overlay').className = '';
       }
@@ -2742,6 +3078,181 @@ function gameLoop(timestamp) {
   requestAnimationFrame(gameLoop);
 }
 
+// ─── TUTORIAL ─────────────────────────────────────────────────────────────────
+function showTutorialHint(step) {
+  const hint = document.getElementById('tutorial-hint');
+  const text = document.getElementById('tutorial-text');
+  const stepInd = document.getElementById('tutorial-step-indicator');
+  if (!hint || !text) return;
+  // Clear previous highlights
+  document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+
+  const msgs = {
+    1: 'An event has appeared on the map.\n\nClick the pulsing marker to open the incident brief.',
+    2: 'Review the recommended sensors in the panel.\n\nClick the highlighted satellite on the left to task it.',
+    3: 'Satellite tasking in progress — wait for the acquisition to complete.',
+    4: 'Data acquired! Click the event marker again to review the data product.',
+    5: 'Review the data and select a response action below.',
+  };
+
+  if (!msgs[step]) { hint.style.display = 'none'; return; }
+  text.textContent = msgs[step];
+  stepInd.textContent = `STEP ${step} OF 5`;
+  hint.style.display = 'block';
+
+  // Highlight relevant elements
+  if (step === 2) {
+    const tutEv = activeEvents.find(e => e.id === tutorialEventId);
+    if (tutEv) {
+      const def = EVENT_TYPES[tutEv.type];
+      const primarySat = def && def.primary[0];
+      if (primarySat) {
+        const satIdx = SATELLITES.findIndex(s => s.id === primarySat);
+        if (satIdx >= 0) {
+          const cards = document.querySelectorAll('.sat-card');
+          if (cards[satIdx]) cards[satIdx].classList.add('tutorial-highlight');
+        }
+      }
+    }
+  }
+}
+
+function advanceTutorial(newStep) {
+  if (tutorialStep === 6) return;
+  tutorialStep = newStep;
+  if (newStep >= 6) {
+    tutorialStep = 6;
+    const hint = document.getElementById('tutorial-hint');
+    if (hint) hint.style.display = 'none';
+    document.querySelectorAll('.tutorial-highlight').forEach(el => el.classList.remove('tutorial-highlight'));
+    return;
+  }
+  showTutorialHint(newStep);
+}
+
+function skipTutorial() {
+  advanceTutorial(6);
+}
+
+window.skipTutorial = skipTutorial;
+
+// ─── AUTO-TASK ────────────────────────────────────────────────────────────────
+function getAutoTaskOptions(ev) {
+  if (!ev || ev.status !== 'ACTIVE') return [];
+  if (pendingTaskings.some(t => t.eventId === ev.id)) return [];
+  const def = EVENT_TYPES[ev.type];
+  const options = [];
+  SATELLITES.forEach((sat, si) => {
+    const state = satState[si];
+    if (state.status !== 'NOMINAL') return;
+    if ((state.dutyCycle || 0) >= 100) return;
+    if (sat.id === 'SOL-WATCH' && ev.category !== 'space_weather') return;
+
+    let match = 'wrong';
+    if (def.primary.includes(sat.id))        match = 'optimal';
+    else if (def.acceptable.includes(sat.id)) match = 'acceptable';
+
+    // Exclude wrong-sensor satellites before applying blocking conditions
+    if (match === 'wrong') return;
+
+    if (sat.id === 'FOREST-WATCH' && (ev.cloudy || ev.nightTime)) {
+      match = 'optimal';
+    } else {
+      if (ev.cloudy    && sat.cloudFree === false && sat.id !== 'FOREST-WATCH') match = 'blocked';
+      if (ev.nightTime && sat.nightFree === false && sat.id !== 'FOREST-WATCH') match = 'blocked';
+      if (ev.nightTime && sat.nightFree === 'partial' && match === 'optimal')   match = 'acceptable';
+    }
+
+    const isObs = ev.category === 'observation';
+    if (isObs) {
+      // Observations: blocked → acceptable (conditions don't prevent logging).
+      if (match === 'blocked') match = 'acceptable';
+    } else {
+      // Crisis events: skip blocked — degraded data prevents high-impact mitigations.
+      if (match === 'blocked') return;
+    }
+
+    options.push({ si, sat, match, dutyCycle: state.dutyCycle || 0 });
+  });
+
+  const rank = { optimal: 2, acceptable: 1 };
+  options.sort((a, b) => {
+    const d = rank[b.match] - rank[a.match];
+    return d !== 0 ? d : a.dutyCycle - b.dutyCycle;
+  });
+  return options;
+}
+
+function autoTaskBest() {
+  const ev = selectedEvent;  // use module-scoped var directly
+  const opts = getAutoTaskOptions(ev);
+  if (opts.length === 0) return;
+  onSatClick(opts[0].si);
+}
+
+window.autoTaskBest = autoTaskBest;
+window.taskSatById = function(si) { onSatClick(si); };
+
+// ─── CONSTELLATION INFO OVERLAY ───────────────────────────────────────────────
+let infoOverlayOpen = false;
+
+const SAT_INFO = [
+  { id:'FIRE-WATCH',   color:'#ff6600', orbit:'LEO/SSO', sensor:'Thermal IR',          revisit:'12h',       cloud:'Blocked by cloud', night:'Works at night', desc:'Maps fire radiative power, lava flow boundaries, and surface heat. Drives aerial suppression targeting, evacuation radii, and urban heat island monitoring.' },
+  { id:'FLOOD-EYE',   color:'#4488ff', orbit:'LEO/SSO', sensor:'SAR',                  revisit:'6h',        cloud:'All-weather (SAR)', night:'Works at night', desc:'Penetrates cloud and smoke to map flood inundation extent. Also detects subsidence (InSAR mode), ship positions, and groundwater depletion over time.' },
+  { id:'CARBON-SENSE',color:'#aa44ff', orbit:'LEO/SSO', sensor:'Hyperspectral',         revisit:'16h',       cloud:'Partial penetration', night:'Day only',      desc:'Detects methane, CO₂, SO₂, and aerosol plumes by their chemical spectral fingerprint. Used for industrial emissions attribution and ocean carbon flux monitoring.' },
+  { id:'URBAN-LENS',  color:'#44ff44', orbit:'LEO/SSO', sensor:'Optical 0.5m',          revisit:'24h',       cloud:'Blocked by cloud', night:'Day only',       desc:'Sub-metre optical imagery reveals deforestation boundaries, urban expansion, crop stress (NDVI), and illegal activity. Highest spatial resolution in the constellation.' },
+  { id:'COAST-GUARD', color:'#00ffcc', orbit:'LEO/SSO', sensor:'Optical + Thermal',     revisit:'12h',       cloud:'Blocked by cloud', night:'Partial',        desc:'Ocean colour detects oil slicks, algal blooms, and sediment plumes. Thermal component adds sea surface temperature and nighttime coastal monitoring capability.' },
+  { id:'STORM-EYE',   color:'#ffcc00', orbit:'GEO',     sensor:'Sounder + Optical',     revisit:'Continuous',cloud:'Partial (sounder)', night:'Partial',       desc:'Fixed above the equator at 36,000 km — watches the same region 24/7. Atmospheric sounder profiles storm intensification; optical tracks cloud system evolution in real time.' },
+  { id:'TOPO-SCAN',   color:'#ffffff', orbit:'LEO',     sensor:'LiDAR',                 revisit:'48h',       cloud:'Blocked by cloud', night:'Works at night', desc:'Laser pulses measure elevation to centimetre precision. Tracks ice sheet thinning, canopy height loss, and coastal erosion. Longest revisit — prioritise carefully.' },
+  { id:'FOREST-WATCH',color:'#44dd88', orbit:'LEO/SSO', sensor:'Dual: Optical + SAR',   revisit:'12h',       cloud:'Auto-selects SAR', night:'Auto-selects SAR',desc:'Unique dual payload — automatically switches to SAR when cloud or darkness would block optical. Player can force SAR override. Best all-round forest monitoring asset.' },
+  { id:'SOL-WATCH',   color:'#ffee44', orbit:'L1 Point',sensor:'Solar Wind / EUV',       revisit:'Continuous',cloud:'N/A (watches Sun)', night:'N/A',          desc:'Positioned 1.5M km sunward at the L1 Lagrange point. Monitors solar flares, coronal mass ejections, and solar wind. Only asset that can trigger space weather events — and the first warning before a CME hits Earth.' },
+];
+
+function buildInfoGrid() {
+  const grid = document.getElementById('info-grid-content');
+  if (!grid) return;
+  grid.innerHTML = SAT_INFO.map(s => {
+    const cloudOk = s.cloud.startsWith('All') || s.cloud.startsWith('Partial') || s.cloud.startsWith('Auto') || s.cloud.startsWith('N/A');
+    const nightOk = s.night.startsWith('Works') || s.night.startsWith('Continuous') || s.night.startsWith('Auto') || s.night.startsWith('N/A') || s.night.startsWith('Partial');
+    return `<div class="info-sat-card">
+      <div class="info-sat-name" style="color:${s.color}">${s.id}</div>
+      <div style="margin:4px 0 6px">
+        <span class="info-badge orbit">${s.orbit}</span>
+        <span class="info-badge orbit" style="color:#aabbcc">${s.sensor}</span>
+      </div>
+      <div style="margin-bottom:5px">
+        <span class="info-badge ${cloudOk ? 'cloud-ok' : 'cloud-no'}">${s.cloud}</span>
+        <span class="info-badge ${nightOk ? 'night-ok' : 'night-no'}">${s.night}</span>
+        <span class="info-badge orbit">Revisit: ${s.revisit}</span>
+      </div>
+      <div class="info-sat-desc">${s.desc}</div>
+    </div>`;
+  }).join('');
+}
+
+function openInfoOverlay() {
+  buildInfoGrid();
+  document.getElementById('info-overlay').classList.add('visible');
+  infoOverlayOpen = true;
+  lastTimestamp = 0; // prevent dt spike on resume
+}
+
+function closeInfoOverlay() {
+  document.getElementById('info-overlay').classList.remove('visible');
+  infoOverlayOpen = false;
+  lastTimestamp = 0;
+}
+
+// Close on click outside the box
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('info-overlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('info-overlay')) closeInfoOverlay();
+  });
+});
+
+window.openInfoOverlay = openInfoOverlay;
+window.closeInfoOverlay = closeInfoOverlay;
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function init() {
   drawMap();
@@ -2756,6 +3267,32 @@ function init() {
   buildUpgradesPanel();
   renderHighScores();
 
+  // Difficulty button wiring
+  document.querySelectorAll('[data-diff]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-diff]').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      easyMode = btn.dataset.diff === 'easy';
+    });
+  });
+
+  // Auto-task checkbox
+  document.getElementById('auto-task-check').addEventListener('change', (e) => {
+    autoTaskEnabled = e.target.checked;
+  });
+
+  // Cloud cover button wiring
+  document.querySelectorAll('[data-cloud]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-cloud]').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      cloudMode = btn.dataset.cloud;
+    });
+  });
+
+  // Tutorial skip button
+  document.getElementById('tutorial-skip-btn').addEventListener('click', skipTutorial);
+
   // Crisis panel close button
   document.getElementById('crisis-close-btn').addEventListener('click', () => {
     if (gameState === 'RESOLVING') {
@@ -2767,10 +3304,10 @@ function init() {
     updateDataPanel();
   });
 
-  // Duration button wiring
-  document.querySelectorAll('.duration-btn').forEach(btn => {
+  // Duration button wiring — only buttons with data-dur
+  document.querySelectorAll('[data-dur]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.duration-btn').forEach(b => b.classList.remove('selected'));
+      document.querySelectorAll('[data-dur]').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
       gameDuration = parseInt(btn.dataset.dur, 10);
     });
