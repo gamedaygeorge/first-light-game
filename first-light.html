@@ -216,7 +216,7 @@ html, body {
 }
 .action-btn:hover { border-color: var(--color-accent); background: #0a2030; }
 .action-btn .risk-badge {
-  float: right; font-size: 9px; padding: 1px 4px; border-radius: 2px;
+  font-size: 9px; padding: 1px 5px; border-radius: 2px; vertical-align: middle; margin-left: 6px;
 }
 .risk-badge.LOW { background: #0a2010; color: #44aa66; border: 1px solid #1a4020; }
 .risk-badge.MEDIUM { background: #2a1a00; color: var(--color-amber); border: 1px solid #553300; }
@@ -550,7 +550,6 @@ html, body {
           </div>
         </div>
         <div id="action-section">
-          <h4>MITIGATION ACTIONS</h4>
           <div id="action-buttons"></div>
         </div>
       </div>
@@ -1839,12 +1838,23 @@ function spawnEvent() {
   const def = EVENT_TYPES[key];
 
   const locArr = def.locations;
-  const [lon, lat, region] = locArr[Math.floor(Math.random() * locArr.length)];
 
-  // Add some jitter so same location events don't all pile up
-  // Clamp to safe bounds so markers stay fully within canvas (40px padding from edges)
-  const jLon = Math.max(-168, Math.min(168, lon + (Math.random() - 0.5) * 5));
-  const jLat = Math.max(-60, Math.min(65, lat + (Math.random() - 0.5) * 3));
+  // Pick a location that doesn't overlap existing event markers (min 70px canvas separation)
+  const MIN_SEP = 70;
+  const shuffled = [...locArr].sort(() => Math.random() - 0.5);
+  let jLon, jLat, region;
+  let placed = false;
+  for (const [tLon, tLat, tRegion] of shuffled) {
+    const cLon = Math.max(-168, Math.min(168, tLon + (Math.random() - 0.5) * 5));
+    const cLat = Math.max(-60,  Math.min(65,  tLat + (Math.random() - 0.5) * 3));
+    const cx = lonToX(cLon), cy = latToY(cLat);
+    const tooClose = activeEvents.some(e => {
+      const dx = lonToX(e.lon) - cx, dy = latToY(e.lat) - cy;
+      return Math.sqrt(dx * dx + dy * dy) < MIN_SEP;
+    });
+    if (!tooClose) { jLon = cLon; jLat = cLat; region = tRegion; placed = true; break; }
+  }
+  if (!placed) return; // all candidate locations occupied — try again next spawn tick
 
   const urgencyMax = def.urgency[0] + Math.random() * (def.urgency[1] - def.urgency[0]);
 
@@ -2288,33 +2298,43 @@ function updateDataPanel() {
         <button onclick="openMitigationOverlay()" style="background:none;border:none;color:#556677;font-family:var(--font-mono);font-size:9px;cursor:pointer;padding:0;text-decoration:underline;letter-spacing:0.5px">? costs &amp; impact</button>`;
       actionButtons.appendChild(actHdr);
 
+      const isObsEv = ev.category === 'observation';
       def.mitigations.forEach(m => {
         const cost = m.cost || m.risk;
         const lockedByDegradedData = resolveMatch === 'acceptable' && cost === 'HIGH';
         const btn = document.createElement('button');
         btn.className = 'action-btn';
-        const deploySpend = easyMode ? Math.floor((MITIGATION_SPEND[cost]||25)*0.5) : (MITIGATION_SPEND[cost]||25);
-        const estReward  = Math.floor((m.points || 120) * (MITIGATION_PTS_MULT[cost] || 1.0));
+        // Observations are free to acknowledge; crisis actions have a deploy cost
+        const spendBase = isObsEv ? 0 : (MITIGATION_SPEND[cost] || 25);
+        const deploySpend = isObsEv ? 0 : (easyMode ? Math.floor(spendBase * 0.5) : spendBase);
+        const estReward  = isObsEv ? m.points : Math.floor((m.points || 120) * (MITIGATION_PTS_MULT[cost] || 1.0));
         const netEst = estReward - deploySpend;
         const spendCol  = cost === 'HIGH' ? '#ff6644' : cost === 'MEDIUM' ? '#ffaa44' : '#88bbaa';
-        const impactNote = cost === 'HIGH'
-          ? `<span style="font-size:9px;color:#ff6644;display:block;margin-top:2px">High impact — requires optimal data · may trigger follow-up</span>`
+        const impactNote = isObsEv
+          ? `<div style="font-size:9px;color:#44aacc;margin-top:3px">Observation log — no deployment cost</div>`
+          : cost === 'HIGH'
+          ? `<div style="font-size:9px;color:#ff6644;margin-top:3px">High impact — requires optimal data · may trigger follow-up</div>`
           : cost === 'MEDIUM'
-          ? `<span style="font-size:9px;color:#ffaa44;display:block;margin-top:2px">Medium impact — works with any valid data</span>`
-          : `<span style="font-size:9px;color:#88bbaa;display:block;margin-top:2px">Low impact — minimal resources, safe in any condition</span>`;
-        const costRow = `<span style="font-size:9px;display:flex;gap:10px;margin-top:3px">
-          <span style="color:${spendCol}">COST −${deploySpend}</span>
-          <span style="color:#00ee88">REWARD +${estReward}</span>
-          <span style="color:${netEst>=0?'#00ee88':'#ff6644'}">NET ${netEst>=0?'+':''}${netEst}</span>
-        </span>`;
+          ? `<div style="font-size:9px;color:#ffaa44;margin-top:3px">Medium impact — works with any valid data</div>`
+          : `<div style="font-size:9px;color:#88bbaa;margin-top:3px">Low impact — minimal resources, safe in any condition</div>`;
+        const costRow = deploySpend === 0
+          ? `<div style="font-size:9px;display:flex;gap:10px;margin-top:4px">
+              <span style="color:#44aacc">FREE</span>
+              <span style="color:#00ee88">REWARD +${estReward}</span>
+            </div>`
+          : `<div style="font-size:9px;display:flex;gap:10px;margin-top:4px">
+              <span style="color:${spendCol}">COST −${deploySpend}</span>
+              <span style="color:#00ee88">REWARD +${estReward}</span>
+              <span style="color:${netEst>=0?'#00ee88':'#ff6644'}">NET ${netEst>=0?'+':''}${netEst}</span>
+            </div>`;
         if (lockedByDegradedData) {
           btn.style.opacity = '0.4';
           btn.style.cursor = 'not-allowed';
           btn.style.borderColor = '#334';
-          btn.innerHTML = `<span style="font-weight:bold">${m.label}</span> <span class="risk-badge ${cost}">${cost}</span>
-            <span style="font-size:9px;color:#ff4444;display:block;margin-top:2px">🔒 Requires optimal data — retask with correct sensor</span>`;
+          btn.innerHTML = `<div style="font-weight:bold">${m.label} <span class="risk-badge ${cost}">${cost}</span></div>
+            <div style="font-size:9px;color:#ff4444;margin-top:3px">🔒 Requires optimal data — retask with correct sensor</div>`;
         } else {
-          btn.innerHTML = `<span style="font-weight:bold">${m.label}</span> <span class="risk-badge ${cost}">${cost}</span>${impactNote}${costRow}`;
+          btn.innerHTML = `<div style="font-weight:bold">${m.label} <span class="risk-badge ${cost}">${cost}</span></div>${impactNote}${costRow}`;
           btn.onclick = () => onMitigationClick(m, ev);
         }
         actionButtons.appendChild(btn);
