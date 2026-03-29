@@ -373,6 +373,23 @@ html, body {
   overflow-y: auto; padding: 24px 16px;
 }
 #info-overlay.visible { display: flex; }
+#mitigation-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(5,10,15,0.97); z-index: 151;
+  display: none; align-items: flex-start; justify-content: center;
+  overflow-y: auto; padding: 24px 16px;
+}
+#mitigation-overlay.visible { display: flex; }
+.mit-section { margin-bottom: 16px; border: 1px solid #1a2a3a; border-radius: 3px; padding: 12px 14px; }
+.mit-section-title { font-size: 10px; letter-spacing: 3px; font-weight: bold; margin-bottom: 6px; }
+.mit-section.high .mit-section-title { color: #ff6644; }
+.mit-section.medium .mit-section-title { color: #ffaa44; }
+.mit-section.low .mit-section-title { color: #88bbaa; }
+.mit-section.acq .mit-section-title { color: #aabbcc; }
+.mit-body { color: #c0ccd8; font-size: 11px; line-height: 1.65; }
+.mit-stat { display: flex; gap: 8px; margin: 3px 0; font-size: 10px; }
+.mit-stat-label { color: #8899aa; min-width: 160px; flex-shrink: 0; }
+.mit-stat-value { color: #e0e8f0; }
 #info-box {
   background: #0a1420; border: 1px solid var(--bg-panel-border);
   padding: 32px 40px; max-width: 720px; width: 100%;
@@ -459,7 +476,7 @@ html, body {
 <div id="hud-bar">
   <div id="hud-left">FIRST LIGHT &nbsp;|&nbsp; DIAMOND SKY MISSION CONTROL</div>
   <div id="hud-center">T+00:00</div>
-  <div id="hud-right">SCORE: <span id="hud-score">00000</span> &nbsp; STREAK: <span id="hud-streak">×1</span> &nbsp; RESOLVED: <span id="hud-events">0</span> &nbsp; CR: <span id="hud-credits" style="color:#ffcc44">0</span> &nbsp;<span id="hud-active-warn" style="display:none;color:#ff6644">⚠ <span id="hud-active-count">0</span> ACTIVE</span>&nbsp;<span id="hud-easy-mode" style="display:none;color:#ffcc44;font-size:10px">[EASY MODE]</span>&nbsp;<span style="color:#334455;font-size:10px">ESC=PAUSE</span><span id="hud-phase" style="margin-left:8px"></span></div>
+  <div id="hud-right">BUDGET: <span id="hud-score">01000</span> &nbsp; STREAK: <span id="hud-streak">×1</span> &nbsp; RESOLVED: <span id="hud-events">0</span> &nbsp; CR: <span id="hud-credits" style="color:#ffcc44">0</span> &nbsp;<span id="hud-active-warn" style="display:none;color:#ff6644">⚠ <span id="hud-active-count">0</span> ACTIVE</span>&nbsp;<span id="hud-easy-mode" style="display:none;color:#ffcc44;font-size:10px">[EASY MODE]</span>&nbsp;<span style="color:#334455;font-size:10px">ESC=PAUSE</span><span id="hud-phase" style="margin-left:8px"></span></div>
 </div>
 <div id="space-weather-bar" style="display:none;"></div>
 
@@ -596,6 +613,8 @@ html, body {
     <div id="hiscore-section"></div>
     <div style="margin-bottom:16px">
       <button onclick="openInfoOverlay()" style="background:none;border:none;color:#5577aa;font-family:var(--font-mono);font-size:11px;cursor:pointer;letter-spacing:1px;text-decoration:underline;padding:0">&#9432; CONSTELLATION GUIDE — what each satellite can see</button>
+      &nbsp;&nbsp;
+      <button onclick="openMitigationOverlay()" style="background:none;border:none;color:#5577aa;font-family:var(--font-mono);font-size:11px;cursor:pointer;letter-spacing:1px;text-decoration:underline;padding:0">&#9432; RESPONSE ACTIONS — budget &amp; cost guide</button>
     </div>
     <div class="modal-attr">A <a href="https://diamondsky.au" target="_blank" style="color:#aabbdd;text-decoration:underline">Diamond Sky</a> portfolio piece — diamondsky.au</div>
     <button class="modal-btn" id="start-btn">INITIATE MISSION</button>
@@ -619,7 +638,64 @@ html, body {
   </div>
 </div>
 
-<!-- Constellation info overlay — pausess game clock while open -->
+<!-- Response Actions info overlay -->
+<div id="mitigation-overlay">
+  <div id="info-box">
+    <button class="info-close" onclick="closeMitigationOverlay()">&#x2715;</button>
+    <div class="info-title">RESPONSE ACTIONS</div>
+    <div class="info-subtitle">DIAMOND SKY MISSION CONTROL — BUDGET &amp; DEPLOYMENT GUIDE</div>
+    <div style="color:#8899aa;font-size:11px;line-height:1.6;margin-bottom:16px;padding:10px 12px;border:1px solid #1a2a3a;border-radius:3px">
+      Each mission starts with a <span style="color:#00ee88;font-weight:bold">budget of 1,000 pts</span>. Tasking satellites costs budget (free in Easy Mode). Deploying response actions costs budget. Successful resolutions earn it back — and more if you choose high-impact options wisely.
+    </div>
+    <div class="mit-section high">
+      <div class="mit-section-title">▲ HIGH IMPACT ACTIONS</div>
+      <div class="mit-body">Major physical interventions — aerial suppression, controlled burns, reef restoration, grid load shedding. Highest reward ceiling but significant upfront cost. Requires optimal sensor data. May trigger follow-up events.</div>
+      <div style="margin-top:8px">
+        <div class="mit-stat"><span class="mit-stat-label">Deploy cost (standard)</span><span class="mit-stat-value" style="color:#ff6644">−120 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">Deploy cost (easy mode)</span><span class="mit-stat-value" style="color:#ff6644">−60 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">Reward multiplier</span><span class="mit-stat-value">×1.4 on base reward</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">Data requirement</span><span class="mit-stat-value">Optimal satellite match only</span></div>
+      </div>
+    </div>
+    <div class="mit-section medium">
+      <div class="mit-section-title">~ MEDIUM IMPACT ACTIONS</div>
+      <div class="mit-body">Targeted operational responses — deploy emergency services, close affected areas, issue maritime containment orders. Balanced cost and reward. Works with optimal or acceptable sensor data.</div>
+      <div style="margin-top:8px">
+        <div class="mit-stat"><span class="mit-stat-label">Deploy cost (standard)</span><span class="mit-stat-value" style="color:#ffaa44">−60 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">Deploy cost (easy mode)</span><span class="mit-stat-value" style="color:#ffaa44">−30 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">Reward multiplier</span><span class="mit-stat-value">×0.8 on base reward</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">Data requirement</span><span class="mit-stat-value">Optimal or acceptable</span></div>
+      </div>
+    </div>
+    <div class="mit-section low">
+      <div class="mit-section-title">✓ LOW IMPACT ACTIONS</div>
+      <div class="mit-body">Advisories, alerts, warnings and notifications. Lowest cost, lowest reward. Works in any data condition — the right choice when resources are tight or data quality is marginal.</div>
+      <div style="margin-top:8px">
+        <div class="mit-stat"><span class="mit-stat-label">Deploy cost (standard)</span><span class="mit-stat-value" style="color:#88bbaa">−25 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">Deploy cost (easy mode)</span><span class="mit-stat-value" style="color:#88bbaa">−12 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">Reward multiplier</span><span class="mit-stat-value">×0.5 on base reward</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">Data requirement</span><span class="mit-stat-value">Any condition</span></div>
+      </div>
+    </div>
+    <div class="mit-section acq">
+      <div class="mit-section-title">◉ SATELLITE ACQUISITION COSTS</div>
+      <div class="mit-body">Every satellite tasking costs budget. GEO satellites are cheapest — always on station. Premium LEO sensors reflect sensor complexity and positioning. <span style="color:#ffcc44">Easy Mode: acquisitions are free.</span></div>
+      <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:3px 16px">
+        <div class="mit-stat"><span class="mit-stat-label">SOL-WATCH (L1)</span><span class="mit-stat-value" style="color:#ffee44">−20 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">STORM-EYE (GEO)</span><span class="mit-stat-value" style="color:#ffcc00">−25 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">URBAN-LENS (Optical)</span><span class="mit-stat-value" style="color:#44ff44">−40 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">COAST-GUARD (Opt+Therm)</span><span class="mit-stat-value" style="color:#00ffcc">−45 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">FIRE-WATCH (Thermal)</span><span class="mit-stat-value" style="color:#ff6600">−50 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">CARBON-SENSE (Hyperspec)</span><span class="mit-stat-value" style="color:#aa44ff">−55 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">FOREST-WATCH (Dual)</span><span class="mit-stat-value" style="color:#44dd88">−60 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">FLOOD-EYE (SAR)</span><span class="mit-stat-value" style="color:#4488ff">−65 pts</span></div>
+        <div class="mit-stat"><span class="mit-stat-label">TOPO-SCAN (LiDAR)</span><span class="mit-stat-value" style="color:#ffffff">−75 pts</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Constellation info overlay — pauses game clock while open -->
 <div id="info-overlay">
   <div id="info-box">
     <button class="info-close" onclick="closeInfoOverlay()">&#x2715;</button>
@@ -652,15 +728,15 @@ function lonToX(lon) { return (lon + 180) / 360 * MAP_W; }
 function latToY(lat) { return (80 - lat) / 160 * MAP_H; }
 
 const SATELLITES = [
-  { id: 'FIRE-WATCH',   orbit: 'LEO', sensor: 'Thermal IR',           revisit: 12, cloudFree: false,      nightFree: true,      color: '#ff6600', satIndex: 0, cooldownMax: 45  },
-  { id: 'FLOOD-EYE',    orbit: 'LEO', sensor: 'SAR',                   revisit: 6,  cloudFree: true,       nightFree: true,      color: '#4488ff', satIndex: 1, cooldownMax: 25  },
-  { id: 'CARBON-SENSE', orbit: 'LEO', sensor: 'Hyperspectral',         revisit: 16, cloudFree: 'partial',  nightFree: false,     color: '#aa44ff', satIndex: 2, cooldownMax: 60  },
-  { id: 'URBAN-LENS',   orbit: 'LEO', sensor: 'Optical 0.5m',          revisit: 24, cloudFree: false,      nightFree: false,     color: '#44ff44', satIndex: 3, cooldownMax: 80  },
-  { id: 'COAST-GUARD',  orbit: 'LEO', sensor: 'Optical+Thermal',       revisit: 12, cloudFree: false,      nightFree: 'partial', color: '#00ffcc', satIndex: 4, cooldownMax: 45  },
-  { id: 'STORM-EYE',    orbit: 'GEO', sensor: 'Sounder+Optical',       revisit: 0,  cloudFree: 'partial',  nightFree: 'partial', color: '#ffcc00', satIndex: -1, cooldownMax: 5  },
-  { id: 'TOPO-SCAN',    orbit: 'LEO', sensor: 'LiDAR',                 revisit: 48, cloudFree: false,      nightFree: true,      color: '#ffffff', satIndex: 5, cooldownMax: 120 },
-  { id: 'FOREST-WATCH', orbit: 'LEO', sensor: 'Optical+SAR (Dual)',   revisit: 12, cloudFree: 'partial',  nightFree: 'partial', color: '#44dd88', satIndex: 6, cooldownMax: 35  },
-  { id: 'SOL-WATCH',   orbit: 'L1',  sensor: 'Solar Wind/EUV',       revisit: 0,  cloudFree: true,       nightFree: true,      color: '#ffee44', satIndex: -2, cooldownMax: 2  },
+  { id: 'FIRE-WATCH',   orbit: 'LEO', sensor: 'Thermal IR',           revisit: 12, cloudFree: false,      nightFree: true,      color: '#ff6600', satIndex: 0,  cooldownMax: 45,  acqCost: 50 },
+  { id: 'FLOOD-EYE',    orbit: 'LEO', sensor: 'SAR',                   revisit: 6,  cloudFree: true,       nightFree: true,      color: '#4488ff', satIndex: 1,  cooldownMax: 25,  acqCost: 65 },
+  { id: 'CARBON-SENSE', orbit: 'LEO', sensor: 'Hyperspectral',         revisit: 16, cloudFree: 'partial',  nightFree: false,     color: '#aa44ff', satIndex: 2,  cooldownMax: 60,  acqCost: 55 },
+  { id: 'URBAN-LENS',   orbit: 'LEO', sensor: 'Optical 0.5m',          revisit: 24, cloudFree: false,      nightFree: false,     color: '#44ff44', satIndex: 3,  cooldownMax: 80,  acqCost: 40 },
+  { id: 'COAST-GUARD',  orbit: 'LEO', sensor: 'Optical+Thermal',       revisit: 12, cloudFree: false,      nightFree: 'partial', color: '#00ffcc', satIndex: 4,  cooldownMax: 45,  acqCost: 45 },
+  { id: 'STORM-EYE',    orbit: 'GEO', sensor: 'Sounder+Optical',       revisit: 0,  cloudFree: 'partial',  nightFree: 'partial', color: '#ffcc00', satIndex: -1, cooldownMax: 5,   acqCost: 25 },
+  { id: 'TOPO-SCAN',    orbit: 'LEO', sensor: 'LiDAR',                 revisit: 48, cloudFree: false,      nightFree: true,      color: '#ffffff', satIndex: 5,  cooldownMax: 120, acqCost: 75 },
+  { id: 'FOREST-WATCH', orbit: 'LEO', sensor: 'Optical+SAR (Dual)',    revisit: 12, cloudFree: 'partial',  nightFree: 'partial', color: '#44dd88', satIndex: 6,  cooldownMax: 35,  acqCost: 60 },
+  { id: 'SOL-WATCH',    orbit: 'L1',  sensor: 'Solar Wind/EUV',        revisit: 0,  cloudFree: true,       nightFree: true,      color: '#ffee44', satIndex: -2, cooldownMax: 2,   acqCost: 20 },
 ];
 
 const EVENT_TYPES = {
@@ -845,7 +921,7 @@ let upgradeHintShown = false;
 let gameState = 'INTRO';
 let gameTime = 0;
 let lastTimestamp = 0;
-let score = 0;
+let score = 1000;
 let streak = 0;
 let eventsResolved = 0;
 let eventsFailed = 0;
@@ -873,6 +949,12 @@ let leoDragTimer  = 0;       // seconds remaining
 let cmeActive     = false;   // CME blackout effect — all LEO sats in COOLDOWN
 let cmeTimer      = 0;       // seconds remaining
 let credits = 0;
+let totalAcqSpent = 0;
+let totalMitigSpent = 0;
+let totalEarned = 0;
+
+const MITIGATION_SPEND    = { LOW: 25, MEDIUM: 60, HIGH: 120 };
+const MITIGATION_PTS_MULT = { LOW: 0.5, MEDIUM: 0.8, HIGH: 1.4 };
 let upgrades = {
   rechargeBoost: 0,      // 0=none, 1=basic(+25%), 2=advanced(+50%)
   acquisitionSpeed: 0,   // 0=none, 1=basic(-3s), 2=advanced(-6s)
@@ -1952,6 +2034,14 @@ function onSatClick(si) {
   state.taskDuration = delay;
   state.dutyCycle = easyMode ? 0 : Math.min(100, (state.dutyCycle || 0) + 22);
 
+  // Deduct acquisition cost from budget (free in easy mode)
+  const acqCost = easyMode ? 0 : (sat.acqCost || 50);
+  score -= acqCost;
+  totalAcqSpent += acqCost;
+  if (acqCost > 0) {
+    floatingTexts.push({ x: lonToX(selectedEvent.lon), y: latToY(selectedEvent.lat) + 22, text: `-${acqCost} acq`, color: '#ff8844', age: 0 });
+  }
+
   // Update event status
   selectedEvent.status = 'ACQUIRING';
   if (tutorialStep === 2 && selectedEvent.id === tutorialEventId) {
@@ -2191,27 +2281,40 @@ function updateDataPanel() {
       hdr.innerHTML = tierLabel;
       actionButtons.appendChild(hdr);
 
+      // "AVAILABLE ACTIONS" header with help link
+      const actHdr = document.createElement('div');
+      actHdr.style.cssText = 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;';
+      actHdr.innerHTML = `<span style="font-size:9px;letter-spacing:3px;color:#aabbcc">AVAILABLE ACTIONS</span>
+        <button onclick="openMitigationOverlay()" style="background:none;border:none;color:#556677;font-family:var(--font-mono);font-size:9px;cursor:pointer;padding:0;text-decoration:underline;letter-spacing:0.5px">? costs &amp; impact</button>`;
+      actionButtons.appendChild(actHdr);
+
       def.mitigations.forEach(m => {
         const cost = m.cost || m.risk;
         const lockedByDegradedData = resolveMatch === 'acceptable' && cost === 'HIGH';
         const btn = document.createElement('button');
         btn.className = 'action-btn';
-        let costLine = '';
-        if (cost === 'HIGH') {
-          costLine = `<span class="cost-indicator high">\u25b2 HIGH IMPACT \u2014 duty cycle \xd72 + follow-up tasking required</span>`;
-        } else if (cost === 'MEDIUM') {
-          costLine = `<span class="cost-indicator medium">~ MEDIUM \u2014 residual monitoring required</span>`;
-        } else {
-          costLine = `<span class="cost-indicator low">\u2713 LOW IMPACT \u2014 partial resolution only</span>`;
-        }
+        const deploySpend = easyMode ? Math.floor((MITIGATION_SPEND[cost]||25)*0.5) : (MITIGATION_SPEND[cost]||25);
+        const estReward  = Math.floor((m.points || 120) * (MITIGATION_PTS_MULT[cost] || 1.0));
+        const netEst = estReward - deploySpend;
+        const spendCol  = cost === 'HIGH' ? '#ff6644' : cost === 'MEDIUM' ? '#ffaa44' : '#88bbaa';
+        const impactNote = cost === 'HIGH'
+          ? `<span style="font-size:9px;color:#ff6644;display:block;margin-top:2px">High impact — requires optimal data · may trigger follow-up</span>`
+          : cost === 'MEDIUM'
+          ? `<span style="font-size:9px;color:#ffaa44;display:block;margin-top:2px">Medium impact — works with any valid data</span>`
+          : `<span style="font-size:9px;color:#88bbaa;display:block;margin-top:2px">Low impact — minimal resources, safe in any condition</span>`;
+        const costRow = `<span style="font-size:9px;display:flex;gap:10px;margin-top:3px">
+          <span style="color:${spendCol}">COST −${deploySpend}</span>
+          <span style="color:#00ee88">REWARD +${estReward}</span>
+          <span style="color:${netEst>=0?'#00ee88':'#ff6644'}">NET ${netEst>=0?'+':''}${netEst}</span>
+        </span>`;
         if (lockedByDegradedData) {
-          btn.style.opacity = '0.35';
+          btn.style.opacity = '0.4';
           btn.style.cursor = 'not-allowed';
           btn.style.borderColor = '#334';
-          btn.innerHTML = `${m.label} <span class="risk-badge ${m.risk}">${m.risk}</span><span class="cost-indicator high">🔒 REQUIRES OPTIMAL DATA — RETASK WITH CORRECT SENSOR</span>`;
-          // no onclick
+          btn.innerHTML = `<span style="font-weight:bold">${m.label}</span> <span class="risk-badge ${cost}">${cost}</span>
+            <span style="font-size:9px;color:#ff4444;display:block;margin-top:2px">🔒 Requires optimal data — retask with correct sensor</span>`;
         } else {
-          btn.innerHTML = `${m.label} <span class="risk-badge ${m.risk}">${m.risk}</span>${costLine}`;
+          btn.innerHTML = `<span style="font-weight:bold">${m.label}</span> <span class="risk-badge ${cost}">${cost}</span>${impactNote}${costRow}`;
           btn.onclick = () => onMitigationClick(m, ev);
         }
         actionButtons.appendChild(btn);
@@ -2354,14 +2457,18 @@ function onMitigationClick(mitigation, ev) {
   const isObs = ev.category === 'observation';
   let total;
   const mitigationCost = mitigation.cost || mitigation.risk || 'LOW';
+  const ptsMult = isObs ? 1.0 : (MITIGATION_PTS_MULT[mitigationCost] || 1.0);
   if (isObs) {
     total = 75;
-  } else if (mitigationCost === 'LOW') {
-    // LOW cost: partial resolution — score at 60%
-    total = Math.floor((basePoints + timeBonus + mitigationPts) * 0.6);
   } else {
-    total = basePoints + timeBonus + mitigationPts;
+    total = Math.floor((basePoints + timeBonus + mitigationPts) * ptsMult);
   }
+
+  // Deduct deployment spend (halved in easy mode, free for observations)
+  const spendBase = isObs ? 0 : (MITIGATION_SPEND[mitigationCost] || 25);
+  const spend = easyMode ? Math.floor(spendBase * 0.5) : spendBase;
+  score -= spend;
+  totalMitigSpent += spend;
 
   // Streak multiplier
   if (resolveMatch !== 'wrong' && resolveMatch !== 'blocked') {
@@ -2381,6 +2488,7 @@ function onMitigationClick(mitigation, ev) {
   }
 
   score += total;
+  totalEarned += total;
   eventsResolved++;
 
   // Award credits
@@ -2397,6 +2505,9 @@ function onMitigationClick(mitigation, ev) {
   const ex = lonToX(ev.lon), ey = latToY(ev.lat);
   floatingTexts.push({ x: ex, y: ey, text: `+${total}`, color: '#00ff88', age: 0 });
   floatingTexts.push({ x: ex + 8, y: ey + 14, text: `+${creditEarned}cr`, color: '#ffcc44', age: 0 });
+  if (spend > 0) {
+    floatingTexts.push({ x: ex, y: ey + 28, text: `-${spend} deploy`, color: '#ff8844', age: 0 });
+  }
 
   // Apply cost-tier effects
   if (!isObs && resolveMatch !== 'blocked' && resolveMatch !== 'wrong') {
@@ -2487,7 +2598,7 @@ function updateHUD() {
   hudCenter.textContent = `${rm}:${rs} REMAINING`;
   const frac = remaining / gameDuration;
   hudCenter.className = frac < 0.15 ? 'critical' : frac < 0.30 ? 'warn' : '';
-  document.getElementById('hud-score').textContent = String(Math.round(score)).padStart(5, '0');
+  document.getElementById('hud-score').textContent = Math.round(score).toLocaleString();
   const streakMult = streak >= 7 ? '×2.5' : streak >= 5 ? '×2.0' : streak >= 3 ? '×1.5' : '×1';
   document.getElementById('hud-streak').textContent = streakMult;
   document.getElementById('hud-events').textContent = eventsResolved;
@@ -2695,11 +2806,16 @@ function triggerGameOver() {
   const accuracy = eventsResolved + eventsFailed > 0 ? Math.round(100 * eventsResolved / (eventsResolved + eventsFailed)) : 0;
   const timedOut = gameTime >= gameDuration;
   const statsEl = document.getElementById('go-stats');
+  const netChange = Math.round(score) - 1000;
   statsEl.innerHTML = `
-    <div class="go-stat"><span class="go-stat-label">FINAL SCORE</span><span class="go-stat-value highlight">${Math.round(score)}</span></div>
-    <div class="go-stat"><span class="go-stat-label">MAX STREAK</span><span class="go-stat-value">×${maxStreak}</span></div>
+    <div class="go-stat"><span class="go-stat-label">FINAL BUDGET</span><span class="go-stat-value highlight">${Math.round(score).toLocaleString()}</span></div>
+    <div class="go-stat"><span class="go-stat-label">STARTING BUDGET</span><span class="go-stat-value">1,000</span></div>
+    <div class="go-stat"><span class="go-stat-label">TOTAL EARNED</span><span class="go-stat-value" style="color:var(--color-accent)">+${totalEarned.toLocaleString()}</span></div>
+    <div class="go-stat"><span class="go-stat-label">ACQUISITIONS SPENT</span><span class="go-stat-value" style="color:#ff8844">−${totalAcqSpent.toLocaleString()}</span></div>
+    <div class="go-stat"><span class="go-stat-label">MITIGATIONS SPENT</span><span class="go-stat-value" style="color:#ff8844">−${totalMitigSpent.toLocaleString()}</span></div>
+    <div class="go-stat" style="border-top:1px solid #1a2a3a;padding-top:6px;margin-top:2px"><span class="go-stat-label">NET RESULT</span><span class="go-stat-value" style="color:${netChange>=0?'var(--color-accent)':'var(--color-alert)'}">${netChange>=0?'+':''}${netChange.toLocaleString()}</span></div>
     <div class="go-stat"><span class="go-stat-label">EVENTS RESOLVED</span><span class="go-stat-value">${eventsResolved}</span></div>
-    <div class="go-stat"><span class="go-stat-label">EVENTS FAILED</span><span class="go-stat-value">${eventsFailed}</span></div>
+    <div class="go-stat"><span class="go-stat-label">MAX STREAK</span><span class="go-stat-value">×${maxStreak}</span></div>
     <div class="go-stat"><span class="go-stat-label">ACCURACY</span><span class="go-stat-value">${accuracy}%</span></div>
     <div class="go-stat"><span class="go-stat-label">MISSION STATUS</span><span class="go-stat-value" style="color:${timedOut ? 'var(--color-accent)' : 'var(--color-alert)'}">${timedOut ? 'MISSION COMPLETE' : 'MISSION FAILED'}</span></div>
   `;
@@ -2707,15 +2823,18 @@ function triggerGameOver() {
 
   // Nudge easy-mode players toward standard mode once they've got the hang of it
   const nudge = document.getElementById('standard-nudge');
-  if (nudge) nudge.style.display = (easyMode && score >= 400 && eventsResolved >= 3) ? 'block' : 'none';
+  if (nudge) nudge.style.display = (easyMode && score >= 1400 && eventsResolved >= 3) ? 'block' : 'none';
 }
 
 // ─── RESET ────────────────────────────────────────────────────────────────────
 function resetGame() {
   gameTime = 0;
   lastTimestamp = 0;
-  score = 0;
+  score = 1000;
   streak = 0;
+  totalAcqSpent = 0;
+  totalMitigSpent = 0;
+  totalEarned = 0;
   eventsResolved = 0;
   eventsFailed = 0;
   maxStreak = 0;
@@ -3060,7 +3179,7 @@ function gameLoop(timestamp) {
       triggerGameOver();
     }
     // Catastrophic failure — too many missed events or deeply negative score
-    if (eventsFailed >= 6 || (score < -200 && gameTime > 30)) {
+    if (eventsFailed >= 6 || (score < 100 && gameTime > 30)) {
       triggerGameOver();
     }
 
@@ -3252,6 +3371,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.openInfoOverlay = openInfoOverlay;
 window.closeInfoOverlay = closeInfoOverlay;
+
+function openMitigationOverlay() {
+  document.getElementById('mitigation-overlay').classList.add('visible');
+  infoOverlayOpen = true;
+}
+function closeMitigationOverlay() {
+  document.getElementById('mitigation-overlay').classList.remove('visible');
+  infoOverlayOpen = false;
+}
+window.openMitigationOverlay = openMitigationOverlay;
+window.closeMitigationOverlay = closeMitigationOverlay;
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function init() {
